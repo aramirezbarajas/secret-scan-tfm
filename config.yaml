@@ -1,0 +1,39 @@
+# Configuración del TFM — secret-scan-tfm
+# Rutas relativas a la raíz del proyecto (C:\IA\secret-scan-tfm)
+
+project_root: "."
+
+# Dataset CredData (Samsung) — generado localmente, no versionar en Git
+creddata_root: "./datasets/creddata"
+data_dir: "./datasets/creddata/data"
+meta_dir: "./datasets/creddata/meta"
+
+# Prefijo usado en meta/*.csv y en gitleaks_report.json (no es la ruta en disco)
+# Ejemplo: data/0436af4a/docs/a9108d0e.md
+path_prefix_in_reports: "data"
+
+# Salidas de experimentos
+results_dir: "./results"
+gitleaks_report: "./results/gitleaks_report.json"
+evaluation_summary: "./results/evaluation_summary.json"
+fp_candidates: "./results/fp_candidates.json"
+fp_after_llm: "./results/fp_after_llm.json"
+
+# Escaneo con Gitleaks
+gitleaks:
+  command: "gitleaks"
+  no_git: true
+
+# Capa LLM (Ollama local)
+llm:
+  provider: "ollama"
+  base_url: "http://localhost:11434"
+  model: "llama3.2"
+  temperature: 0
+  timeout_seconds: 120
+
+# Dataset (cita en la memoria)
+dataset:
+  name: "CredData"
+  source: "https://github.com/Samsung/CredData"
+  license: "Ver LICENSE en el repositorio oficial"

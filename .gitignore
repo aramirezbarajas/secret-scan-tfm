@@ -1,0 +1,31 @@
+# Entorno Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Dataset CredData (grande, datos de terceros)
+datasets/creddata/data/
+datasets/creddata/meta/
+
+# Resultados de experimentos
+results/
+
+# Informes sueltos por si se generan fuera de results/
+gitleaks_report.json
+fp_candidates.json
+evaluation_summary.json
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+Desktop.ini
+
+# Secretos locales (nunca subir)
+.env
+*.local.yaml
