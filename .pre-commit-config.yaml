@@ -1,0 +1,13 @@
+# Pre-commit en el repositorio principal del TFM.
+# Escanea cambios staged con Gitleaks antes de cada commit.
+#
+#   pip install pre-commit
+#   pre-commit install
+#   pre-commit run gitleaks --all-files
+
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.2
+    hooks:
+      - id: gitleaks
+        args: [--config=examples/demo-repo/.gitleaks.toml]

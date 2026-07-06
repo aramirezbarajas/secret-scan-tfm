@@ -1,0 +1,10 @@
+# Pre-commit: escaneo de secretos con Gitleaks antes de cada commit.
+# Instalacion: pip install pre-commit && pre-commit install
+# Prueba manual: pre-commit run gitleaks --all-files
+
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.2
+    hooks:
+      - id: gitleaks
+        args: [--config=.gitleaks.toml]

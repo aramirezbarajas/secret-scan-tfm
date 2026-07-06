@@ -1,0 +1,19 @@
+title = "demo-repo TFM — allowlist documentada"
+
+# Sin esto, un .gitleaks.toml propio sustituye las reglas por defecto y no detecta nada.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Fixtures de test y plantillas de ejemplo (no credenciales reales)"
+paths = [
+  '''tests/fixtures/''',
+  '''docs/''',
+  '''leaks/.*\.template$''',
+  '''\.env\.example$''',
+]
+regexes = [
+  '''MOCK_[A-Z_]+''',
+  '''changeme''',
+  '''your-api-key-here''',
+]

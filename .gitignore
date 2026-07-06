@@ -29,3 +29,11 @@ Desktop.ini
 # Secretos locales (nunca subir)
 .env
 *.local.yaml
+config.yaml
+
+# Backups locales
+*.bak
+
+# Demo-repo: git anidado de pruebas locales y archivo de leak de demo
+examples/demo-repo/.git/
+examples/demo-repo/leaks/demo-block-me.env

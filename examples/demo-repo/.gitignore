@@ -1,0 +1,11 @@
+# Secretos locales (nunca versionar)
+.env
+*.local.env
+
+# Archivo creado localmente para probar el bloqueo de pre-commit
+leaks/demo-block-me.env
+
+# Python
+__pycache__/
+.venv/
+*.pyc
