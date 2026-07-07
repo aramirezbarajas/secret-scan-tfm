@@ -2,6 +2,8 @@
 
 Trabajo de Fin de Master: deteccion de secretos en codigo combinando **reglas (Gitleaks)** y **LLM (Ollama)** para reducir falsos positivos.
 
+**Herramienta derivada (MVP):** [secret-triage/](secret-triage/) — CLI para triar informes Gitleaks con Ollama en cualquier repo.
+
 ## Requisitos
 
 - Python 3.10+
@@ -18,6 +20,7 @@ secret-scan-tfm/
 ├── .pre-commit-config.yaml  # Gitleaks antes de cada commit
 ├── .github/workflows/       # CI: secret-scan.yml
 ├── examples/demo-repo/      # Mini repo de demostracion DevSecOps
+├── secret-triage/           # CLI MVP post-Gitleaks + LLM
 ├── datasets/creddata/       # Local: data/ + meta/ (gitignored)
 ├── results/                 # Informes generados (gitignored)
 ├── scripts/

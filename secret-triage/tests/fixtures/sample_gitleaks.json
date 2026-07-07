@@ -1,0 +1,16 @@
+[
+  {
+    "Description": "Generic API Key",
+    "StartLine": 19,
+    "EndLine": 19,
+    "StartColumn": 1,
+    "EndColumn": 40,
+    "Match": "MOCK_ACCESS_TOKEN = \"at-0987654321\"",
+    "Secret": "at-0987654321",
+    "File": "tests/fixtures/mock_secrets.py",
+    "SymlinkFile": "",
+    "Fingerprint": "tests/fixtures/mock_secrets.py:generic-api-key:19",
+    "RuleID": "generic-api-key",
+    "Entropy": 3.5
+  }
+]

@@ -1,0 +1,23 @@
+# Ejemplo: Gitleaks en PR + triaje (requiere runner self-hosted con Ollama)
+name: Secret scan + triage
+
+on:
+  pull_request:
+
+jobs:
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # En runner self-hosted con Ollama:
+      # - run: pip install secret-triage
+      # - run: secret-triage filter --report gitleaks.json -o triaged.json
+      # - uses: actions/upload-artifact@v4
+      #   with:
+      #     name: triage-report
+      #     path: triaged.json
