@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "secret-triage"
-version = "0.1.0"
+version = "0.1.1"
 description = "Post-procesador de informes Gitleaks con LLM local (Ollama)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -16,8 +16,12 @@ dependencies = [
   "requests>=2.31.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/aramirezbarajas/secret-scan-tfm/tree/main/secret-triage"
+Repository = "https://github.com/aramirezbarajas/secret-scan-tfm"
+
 [project.optional-dependencies]
-dev = ["pytest>=7.0"]
+dev = ["pytest>=7.0", "build>=1.0", "twine>=5.0"]
 
 [project.scripts]
 secret-triage = "secret_triage.cli:main"

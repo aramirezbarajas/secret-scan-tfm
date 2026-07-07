@@ -14,6 +14,7 @@ from secret_triage.context import read_line_context
 from secret_triage.gitleaks_io import load_gitleaks_report
 from secret_triage.llm_filter import classify_finding, ensure_ollama_model
 from secret_triage.report import render_markdown
+from secret_triage.sarif import write_sarif
 
 
 def cmd_init(args: argparse.Namespace) -> int:
@@ -86,6 +87,15 @@ def cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_sarif(args: argparse.Namespace) -> int:
+    triaged_path = Path(args.triaged)
+    data = json.loads(triaged_path.read_text(encoding="utf-8"))
+    output = Path(args.output or "triaged.sarif")
+    count = write_sarif(data, str(output))
+    print(f"SARIF: {output} ({count} resultados action=keep)")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="secret-triage",
@@ -111,6 +121,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_report.add_argument("triaged", help="Fichero triaged.json")
     p_report.add_argument("-o", "--output", help="Guardar en fichero .md")
     p_report.set_defaults(func=cmd_report)
+
+    p_sarif = sub.add_parser("sarif", help="Exportar SARIF 2.1.0 (hallazgos action=keep)")
+    p_sarif.add_argument("triaged", help="Fichero triaged.json")
+    p_sarif.add_argument("-o", "--output", default="triaged.sarif", help="Salida SARIF")
+    p_sarif.set_defaults(func=cmd_sarif)
 
     return parser
 

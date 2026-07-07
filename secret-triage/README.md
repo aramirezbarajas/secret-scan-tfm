@@ -31,6 +31,9 @@ secret-triage filter --report gitleaks.json --repo-root . -o triaged.json
 
 # 4. Informe legible
 secret-triage report triaged.json -o triage-report.md
+
+# 5. SARIF (GitHub Security / herramientas compatibles)
+secret-triage sarif triaged.json -o triaged.sarif
 ```
 
 Prueba sin LLM:
@@ -46,6 +49,7 @@ secret-triage filter --report gitleaks.json --dry-run
 | `secret-triage init` | Crea `secret-triage.yaml` |
 | `secret-triage filter` | Clasifica hallazgos (keep / dismiss) |
 | `secret-triage report` | Genera Markdown desde `triaged.json` |
+| `secret-triage sarif` | Exporta SARIF 2.1.0 (hallazgos `keep`) |
 
 ## Que NO hace
 
@@ -68,6 +72,19 @@ secret-triage/
 ```bash
 pip install -e ".[dev]"
 pytest
+```
+
+## Publicar en TestPyPI
+
+1. Cuenta en https://test.pypi.org/
+2. Crear API token (scope: todo el proyecto o `secret-triage`)
+3. En GitHub → repo → Settings → Secrets → `TESTPYPI_API_TOKEN`
+4. Crear release `v0.1.x` en GitHub **o** ejecutar workflow *Publish TestPyPI* manualmente
+
+Instalar desde TestPyPI:
+
+```bash
+pip install -i https://test.pypi.org/simple/ secret-triage
 ```
 
 ## Licencia

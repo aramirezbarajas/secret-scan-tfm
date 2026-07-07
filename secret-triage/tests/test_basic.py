@@ -4,6 +4,7 @@ from pathlib import Path
 
 from secret_triage.gitleaks_io import load_gitleaks_report
 from secret_triage.report import render_markdown
+from secret_triage.sarif import triaged_to_sarif
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -34,3 +35,26 @@ def test_render_markdown():
     md = render_markdown(triaged)
     assert "secret-triage" in md
     assert "Descartados" in md
+
+
+def test_sarif_export():
+    triaged = {
+        "findings": [
+            {
+                "file": "app/config.py",
+                "line": 10,
+                "rule_id": "generic-api-key",
+                "action": "keep",
+                "llm_reason": "credencial en runtime",
+                "fingerprint": "app/config.py:generic-api-key:10",
+            },
+            {
+                "file": "tests/mock.py",
+                "line": 1,
+                "action": "dismiss",
+            },
+        ]
+    }
+    sarif = triaged_to_sarif(triaged)
+    assert sarif["version"] == "2.1.0"
+    assert len(sarif["runs"][0]["results"]) == 1
