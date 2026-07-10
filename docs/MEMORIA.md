@@ -882,7 +882,7 @@ python scripts/generate_thesis_figures.py
 - [x] Salida de `compare_llm_runs.py` (`docs/anexos/C03_compare_llm_runs.txt`)
 - [x] Pre-commit bloqueando un commit (`docs/anexos/C04_precommit_bloqueo.png`)
 - [x] Workflow de GitHub Actions (`docs/anexos/C05_github_actions.png`)
-- [ ] TestPyPI `secret-triage` v0.1.2 (`docs/anexos/C06_testpypi.png`)
+- [x] TestPyPI `secret-triage` v0.1.2 (`docs/anexos/C06_testpypi.png`)
 - [x] Triaje LLM con `secret-triage report` (`docs/anexos/C07_secret_triage_report.txt`)
 
 ### Anexo D — Ejemplo de FP corregido por v2
