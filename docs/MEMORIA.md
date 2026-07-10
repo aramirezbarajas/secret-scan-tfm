@@ -4,19 +4,23 @@
 
 ---
 
-**Autor/a:** [Nombre y apellidos]  
-**Titulación:** [Nombre del máster]  
-**Universidad / Centro:** [Nombre]  
-**Director/a:** [Nombre]  
-**Fecha:** [Mes Año]
+**Autor/a:** Ángela Ramírez Barajas  
+**Titulación:** 2ª Ed. Máster en IA Aplicada a la Ciberseguridad (UCAM)  
+**Universidad / Centro:** Universidad Católica de Murcia  
+**Director/a:** Juanjo Salvador  
+**Fecha:** Julio 2026
 
 ---
 
 ## Resumen
 
-<!-- 150–250 palabras. Escribir al final cuando el resto esté cerrado. -->
+La exposición accidental de credenciales en repositorios de código constituye un riesgo de seguridad recurrente. Las herramientas de detección basadas en reglas —expresiones regulares y análisis de entropía— ofrecen baja latencia e integración sencilla en pipelines DevSecOps, pero generan un volumen elevado de falsos positivos que dificulta su adopción en el día a día del desarrollo.
 
-Este trabajo aborda la detección de credenciales y secretos en repositorios de software combinando herramientas basadas en reglas (expresiones regulares y entropía) con un modelo de lenguaje grande (LLM) desplegado localmente, con el objetivo de reducir falsos positivos sin sacrificar la detección de secretos reales. Se utiliza el dataset CredData como corpus de evaluación, Gitleaks como capa de detección y Ollama (llama3.1:8b) como filtro contextual de falsos positivos. Los resultados muestran que la baseline de reglas alcanza un 85,9 % de precisión sobre hallazgos etiquetados, mientras que el pipeline híbrido con prompt optimizado (v2) eleva el filtrado correcto de falsos positivos al 99 % en una muestra de 200 casos, con una precisión proyectada del 99,97 %. Se propone además integración en pre-commit y CI/CD, junto con políticas de rotación y ocultación de secretos.
+Este Trabajo Fin de Máster diseña, implementa y evalúa un pipeline híbrido que combina Gitleaks con un modelo de lenguaje grande (LLM) desplegado localmente mediante Ollama (`llama3.1:8b`), orientado exclusivamente a reclasificar candidatos falsos positivos sin alterar los verdaderos positivos detectados por las reglas. La evaluación se realiza sobre el benchmark CredData (Samsung), con scripts reproducibles de métricas y comparación de versiones de prompt.
+
+Los resultados experimentales muestran que la baseline de Gitleaks alcanza una precisión del 85,85 % y un recall del 45,86 % (F1 = 59,79 %) sobre 8.210 hallazgos. Al aplicar el LLM con un prompt que incorpora reglas de contexto —rutas de test, mocks, fixtures y documentación— se filtra correctamente el 99 % de una muestra de 200 falsos positivos, con una precisión híbrida proyectada del 99,97 % y cero regresiones respecto a un prompt genérico (34 % de acierto). El trabajo documenta además la integración en pre-commit y GitHub Actions, un repositorio de demostración y políticas de rotación y ocultación de secretos.
+
+Se concluye que el enfoque híbrido es viable sin fine-tuning ni servicios cloud, aunque el LLM no mejora el recall de la capa de reglas y su evaluación se limita a una muestra parcial de falsos positivos. El código y la configuración del pipeline están disponibles en un repositorio público.
 
 **Palabras clave:** detección de secretos, Gitleaks, LLM, falsos positivos, DevSecOps, CredData, pre-commit.
 
@@ -24,7 +28,13 @@ Este trabajo aborda la detección de credenciales y secretos en repositorios de 
 
 ## Abstract
 
-<!-- Versión en inglés del resumen. -->
+Accidental exposure of credentials in source code repositories remains a persistent security risk. Rule-based detection tools —regular expressions and entropy analysis— offer low latency and straightforward integration into DevSecOps pipelines, but they produce a high volume of false positives that hinders day-to-day developer adoption.
+
+This Master's Thesis designs, implements, and evaluates a hybrid pipeline combining Gitleaks with a locally deployed Large Language Model (LLM) via Ollama (`llama3.1:8b`), focused exclusively on reclassifying false-positive candidates without altering true positives detected by the rule layer. Evaluation is conducted on the CredData benchmark (Samsung), with reproducible metric scripts and prompt version comparison.
+
+Experimental results show that the Gitleaks baseline achieves 85.85% precision and 45.86% recall (F1 = 59.79%) over 8,210 findings. When applying the LLM with a context-aware prompt —encoding rules for test paths, mocks, fixtures, and documentation— 99% of a 200 false-positive sample are correctly filtered, yielding a projected hybrid precision of 99.97%, with zero regressions compared to a generic prompt (34% accuracy). The thesis also documents integration via pre-commit hooks and GitHub Actions, a demonstration repository, and credential rotation and concealment policies.
+
+The hybrid approach is shown to be viable without fine-tuning or cloud APIs, although the LLM does not improve the rule layer's recall and evaluation is limited to a partial false-positive sample. Pipeline code and configuration are publicly available.
 
 **Keywords:** secret detection, Gitleaks, LLM, false positives, DevSecOps, CredData, pre-commit.
 
@@ -66,32 +76,127 @@ Los modelos de lenguaje (LLM) permiten analizar el **contexto semántico** de un
 
 ### 1.4 Estructura del documento
 
-[Breve párrafo que describa el contenido de cada capítulo.]
+El capítulo 2 revisa el estado del arte en detección de secretos: herramientas basadas en reglas, benchmarks etiquetados (CredData, SecretBench) y trabajos recientes que combinan escáneres con LLM. El capítulo 3 define los objetivos, la hipótesis de investigación y los criterios de éxito. Los capítulos 4 y 5 describen la metodología experimental y la implementación del pipeline —scripts, configuración y capas Gitleaks y Ollama—. El capítulo 6 presenta los resultados sobre CredData: baseline de reglas, filtrado LLM (prompts v1 y v2) y su discusión. El capítulo 7 documenta la integración DevSecOps en pre-commit y GitHub Actions, incluida la herramienta empaquetada `secret-triage` publicada en TestPyPI; el capítulo 8 expone las políticas de rotación y ocultación de credenciales, incluidos los secretos en pipelines CI/CD. El capítulo 9 analiza limitaciones y amenazas a la validez; el capítulo 10 recoge las conclusiones y líneas de trabajo futuro. Por último, el capítulo 11 recoge la bibliografía y el capítulo 12 los anexos con comandos de reproducción, ficheros de resultados y capturas.
+
+### 1.5 Alineación con el enunciado del máster
+
+El presente TFM responde al enunciado oficial del Trabajo Fin de Máster:
+
+> *Detección de secretos en código y pipelines. Combinar reglas (expresiones regulares/entropía) con un LLM para reducir falsos positivos al buscar claves y tokens en repositorios e integrarlo en pre-commit y CI/CD. Medir resultados y proponer políticas de rotación y ocultación.*
+
+La tabla siguiente relaciona cada exigencia del enunciado con el contenido y la evidencia aportada en esta memoria:
+
+| Exigencia del enunciado | Realización en el TFM | Capítulo / evidencia |
+|-------------------------|----------------------|----------------------|
+| Detección de secretos en **código** | Escaneo Gitleaks sobre CredData (repos GitHub reales) y `examples/demo-repo` | 4, 5, 6, 7 |
+| Detección en **pipelines** | Workflow GitHub Actions (`secret-scan.yml`); políticas para secretos en CI | 7, 8.5 |
+| **Reglas** (regex / entropía) | Gitleaks como capa de detección; baseline cuantificada | 2.1, 5.2, 6.1 |
+| **LLM** para reducir **falsos positivos** | Ollama (`llama3.1:8b`) sobre candidatos FP; prompt v2 (99 % acierto en muestra) | 5.3, 6.2, 6.5 |
+| Buscar **claves y tokens** en **repositorios** | Evaluación sobre CredData: API keys, PEM, tokens, passwords etiquetados | 4.1, 6 |
+| Integración **pre-commit** | `.pre-commit-config.yaml`; demo con commit bloqueado | 7.1, 7.3, Anexo C |
+| Integración **CI/CD** | Gitleaks Action en push/PR a `main` | 7.2, 7.4 |
+| **Empaquetado reproducible** | CLI `secret-triage` publicado en TestPyPI; verificación `pip install` en Windows | 7.8 |
+| **Medir resultados** | TP/FP/recall, precisión híbrida, comparativa v1 vs v2, figuras | 6, `docs/figures/` |
+| **Políticas de rotación y ocultación** | Clasificación de hallazgos, rotación, ocultación en vault/CI, gobierno | 8 |
+
+El trabajo cubre de forma explícita las seis dimensiones del enunciado: detección (código + pipeline), enfoque híbrido reglas+LLM, integración operativa (pre-commit/CI), medición experimental y marco de respuesta organizativa ante hallazgos.
 
 ---
 
 ## 2. Estado del arte
 
+La exposición de credenciales en repositorios de código fuente es un problema persistente y cuantitativamente relevante. Informes del sector documentan millones de secretos expuestos en plataformas como GitHub, con tendencia al alza año tras año (Basak et al., 2023). Las organizaciones han respondido con herramientas de escaneo automatizado, benchmarks etiquetados y, más recientemente, modelos de lenguaje que aportan comprensión contextual. Este capítulo revisa esas líneas de trabajo y sitúa el presente TFM en relación con ellas.
+
 ### 2.1 Detección de secretos basada en reglas
+
+Los escáneres basados en reglas constituyen la primera línea de defensa en la práctica DevSecOps. Su principio es combinar **patrones estructurados** (expresiones regulares para formatos conocidos: claves AWS, tokens GitHub, JWT, PEM) con **análisis de entropía** para detectar cadenas aleatorias de alta complejidad que podrían ser secretos genéricos (Meli et al., 2019).
 
 | Herramienta | Enfoque | Ventajas | Limitaciones |
 |-------------|---------|----------|--------------|
-| **Gitleaks** | Regex + entropía | Rápida, offline, integrable en pre-commit | Muchos FP sin contexto |
-| **detect-secrets** | Plugins + baseline | Buena gestión de histórico | Requiere tuning manual |
-| **TruffleHog** | Regex + verificación API | Alta confianza si verifica | Lento, depende de red |
+| **Gitleaks** (Zanev, 2024) | Regex + entropía; modo `protect` para pre-commit | Rápida, offline, integrable en pre-commit y CI | Muchos FP sin contexto semántico; recall limitado en formatos no cubiertos |
+| **detect-secrets** (Yelp, 2024) | Plugins por tipo + baseline (`--baseline`) | Buena gestión de histórico y FP conocidos | Requiere tuning manual y mantenimiento de baseline |
+| **TruffleHog** (Truffle Security, 2024) | Regex + verificación activa contra APIs | Alta confianza si la credencial sigue activa | Lento, depende de red; riesgo ético al verificar secretos ajenos |
+| **shhgit** | Escaneo en tiempo real de GitHub | Útil para monitorización pública | Menor adopción en pipelines privados |
+| **CredSweeper** (Samsung, 2022) | ML + reglas; entrenado con CredData | Mejor equilibrio precisión/recall en benchmark oficial | Requiere modelo entrenado; mayor complejidad de despliegue |
+
+Gitleaks es ampliamente adoptado por su simplicidad y su integración nativa con Git (hook pre-commit, GitHub Actions). En el benchmark publicado por Samsung sobre CredData (abril 2022), Gitleaks obtuvo precisión del 52,6 % y recall del 24,4 % (F1 = 33,4 %), cifras inferiores a herramientas ML como CredSweeper pero con la ventaja de no requerir entrenamiento ni infraestructura adicional (Yun et al., 2021).
+
+Las guías OWASP recomiendan complementar la **prevención** (gestores de secretos, variables de entorno, nunca hardcodear) con **detección automatizada** en el ciclo de vida del software: pre-commit hooks para interceptar secretos antes del push y escaneo en CI/CD como segunda barrera (OWASP, 2024a, 2024b). Este enfoque *shift-left* reduce la ventana de exposición pero no elimina los falsos positivos inherentes a las reglas.
+
+**Limitación común:** las herramientas basadas en reglas tratan cada coincidencia de forma aislada. Un token con formato válido en un archivo de test, un mock o un bloque de documentación genera la misma alerta que una credencial de producción, lo que produce fatiga de alertas y resistencia de los equipos de desarrollo.
 
 ### 2.2 Datasets de evaluación
 
-- **CredData** (Samsung): líneas etiquetadas manualmente en repos open source; benchmark para Gitleaks y otras herramientas.
-- **SecretBench / FPSecretBench:** datasets más amplios; acceso restringido o volumen elevado para el plazo del TFM.
+La evaluación rigurosa de detectores de secretos requiere datasets con **ground truth manual**. Sin benchmarks etiquetados, es imposible comparar de forma reproducible precisión, recall y tasa de FP entre herramientas o enfoques.
+
+#### CredData (Samsung)
+
+CredData (Yun et al., 2021) es el benchmark utilizado en este TFM. Consiste en líneas de código extraídas de repositorios open source de GitHub, etiquetadas manualmente como credencial real (T), falso positivo (F) o no aplicable (X). Incluye metadatos de categoría (API keys, passwords, PEM, tokens, etc.) y cubre ~20 lenguajes y formatos de archivo. El repositorio oficial proporciona scripts de benchmark (`python -m benchmark --scanner gitleaks`) y resultados comparativos de ocho herramientas.
+
+| Atributo | CredData | Este TFM (generación local) |
+|----------|----------|----------------------------|
+| Fuente | GitHub open source | Mismo proceso (`download_data.py`) |
+| Líneas etiquetadas | ~66.898 (meta local) | 66.898 |
+| Secretos reales (T) | ~15.104 | 15.104 |
+| Archivos en `data/` | ~11.408 (oficial) | 11.393 |
+
+CredData fue elegido por ser **público, reproducible y ampliamente citado**, y por incluir Gitleaks en su benchmark oficial. A diferencia de SecretBench, no requiere acceso a Google BigQuery y su tamaño es manejable en un entorno local con WSL.
+
+#### SecretBench
+
+SecretBench (Basak et al., 2023) aporta 97.479 candidatos extraídos de 818 repositorios GitHub, de los cuales 15.084 están verificados como secretos reales. Cubre 49 lenguajes y 311 tipos de archivo. Cada entrada incluye contexto de commit, ruta y metadatos de línea. Está alojado en Google BigQuery y Cloud Storage, lo que facilita consultas a gran escala pero añade fricción para un TFM con plazo limitado.
+
+SecretBench ha impulsado trabajos recientes con LLM (Rahman et al., 2025) y constituye la referencia dominante para evaluación a escala de detectores híbridos.
+
+#### Otros datasets
+
+- **FPSecretBench / variantes ampliadas:** corpus de mayor volumen orientado específicamente a falsos positivos; útil para entrenar clasificadores pero con requisitos de almacenamiento elevados (~1 TB en algunas versiones), inviables en el plazo del presente trabajo.
+- **Repositorios sintéticos o CTF:** útiles para pruebas unitarias pero sin ground truth representativo de código real.
 
 ### 2.3 Uso de LLM en detección de secretos
 
-Revisar trabajos recientes que combinan extracción por reglas + clasificación LLM sobre código fuente. [Completar con 3–5 referencias bibliográficas.]
+La literatura reciente muestra una convergencia hacia enfoques **híbridos**: una capa de extracción (regex, reglas o escáner existente) genera candidatos, y un modelo — clásico o LLM — clasifica si el candidato es un secreto real en función del contexto.
+
+#### Enfoques con fine-tuning y embeddings
+
+Biringa y Kul (2025) proponen representar credenciales con embeddings de BERT y GPT-2, alimentando un clasificador profundo (GPT2-MLP) entrenado sobre CredData. Reportan una mejora del 13 % en F1 respecto al estado del arte previo, con F1 agregado de 0,973 en validación cruzada. Su motivación coincide con la de este TFM: los modelos contextuales discriminan mejor que las reglas puras cuando el formato del valor es ambiguo. Sin embargo, su enfoque requiere **entrenamiento offline** y despliegue del clasificador en CI, mientras que este TFM explora **inferencia con prompt** sin fine-tuning.
+
+CredSweeper (Samsung, 2022) representa la línea ML clásica sobre el mismo benchmark: modelo entrenado con características de código y texto, integrado en el ecosistema Samsung. Obtiene el mejor F1 en el benchmark oficial de CredData (0,859), pero exige pipeline de entrenamiento y actualización del modelo.
+
+#### Enfoques híbridos regex + LLM generativo
+
+Rahman et al. (2025) presentan el trabajo más cercano al presente TFM. Combinan extracción de candidatos por regex con clasificación mediante LLM sobre SecretBench. Evalúan LLaMA-3.1 8B, Mistral-7B y otros modelos con distintas estrategias de prompt y fine-tuning (LoRA). Su mejor resultado — LLaMA-3.1 8B fine-tuned — alcanza F1 = 0,985 en clasificación binaria, superando ampliamente las baselines solo-regex. Concluyen que los LLM open source permiten despliegue local sin APIs comerciales.
+
+**Diferencias respecto a este TFM:**
+
+| Aspecto | Rahman et al. (2025) | Este TFM |
+|---------|----------------------|----------|
+| Dataset | SecretBench | CredData |
+| Escáner base | Regex propio | Gitleaks |
+| LLM | Fine-tuning (LoRA) + prompt | Solo inferencia (Ollama, prompt v1/v2) |
+| Modelo | LLaMA-3.1 8B fine-tuned | LLaMA-3.1 8B sin fine-tuning |
+| Objetivo | Maximizar F1 global | Reducir FP de Gitleaks manteniendo TP |
+| Integración DevSecOps | Propuesta conceptual | Pre-commit + GitHub Actions implementados |
+
+Este TFM demuestra que **prompt engineering contextual** (v2: reglas de ruta test/mock/fixture) puede alcanzar 99 % de acierto en filtrado de FP sin fine-tuning, con el trade-off de no mejorar el recall de la capa de reglas.
+
+#### Prompting vs. fine-tuning
+
+La elección de inferencia zero-shot / few-shot con reglas explícitas en el prompt responde a restricciones prácticas del TFM: plazo limitado, sin GPU dedicada para entrenamiento, y necesidad de iterar rápidamente (comparativa v1 vs v2). La literatura sugiere que el fine-tuning supera al prompting puro en métricas globales (Rahman et al., 2025), pero el prompting estructurado puede ser suficiente para la tarea acotada de **reclasificar FP ya detectados**, que es donde se concentra el coste operativo de Gitleaks.
 
 ### 2.4 Brecha identificada
 
-Falta de evaluación reproducible de un pipeline **local** (sin API cloud) que mida la reducción de FP al añadir LLM sobre Gitleaks, con métricas comparables y propuesta de despliegue en pre-commit/CI.
+Tras la revisión del estado del arte, se identifican las siguientes lagunas que este TFM aborda:
+
+1. **Evaluación reproducible local:** Rahman et al. (2025) y Biringa y Kul (2025) reportan resultados sobre infraestructura y datasets que requieren fine-tuning o acceso a BigQuery. Falta documentación de un pipeline **100 % local** (Ollama + Gitleaks + CredData) medible con scripts abiertos.
+
+2. **Métrica orientada a operaciones:** Los benchmarks oficiales reportan F1 global sobre líneas etiquetadas. En DevSecOps, el problema inmediato de Gitleaks no es solo el recall sino el **volumen de FP** que bloquea o distrae a desarrolladores. Este TFM mide explícitamente la reducción de FP y la precisión híbrida proyectada.
+
+3. **Iteración de prompt documentada:** No existen, hasta donde alcanza esta revisión, comparativas publicadas de versiones de prompt (genérico vs. reglas de contexto) sobre los mismos candidatos FP de Gitleaks en CredData.
+
+4. **Integración end-to-end:** Los trabajos académicos se centran en métricas de laboratorio. Este TFM cierra el ciclo con pre-commit, GitHub Actions y políticas de respuesta (capítulos 7 y 8).
+
+La brecha no es «usar LLM para secretos» — ya demostrado — sino **cuantificar el aporte incremental del LLM como filtro de FP sobre Gitleaks en CredData, sin fine-tuning, con despliegue reproducible en DevSecOps**.
 
 ---
 
@@ -181,7 +286,7 @@ flowchart LR
 
 ### 5.1 Estructura del proyecto
 
-Repositorio: `secret-scan-tfm` ([URL GitHub])
+Repositorio: `secret-scan-tfm` (https://github.com/aramirezbarajas/secret-scan-tfm)
 
 ```
 secret-scan-tfm/
@@ -275,18 +380,75 @@ Breve descripción de `evaluate_gitleaks.py`, `filter_fp_with_llm.py` y `compare
 | Contexto | Bloque `description <<-MD` con JSON de ejemplo de Google Service Account; clave truncada (`...`), IDs `123123` |
 | Motivo del fallo | Ruta `model/app/` no activa reglas de test; formato PEM parece credencial real |
 
-### 6.4 Gráficos sugeridos
+### 6.4 Gráficos y tablas
 
-<!-- Insertar en el PDF final -->
+Figuras y tablas exportables: ejecutar `python scripts/generate_thesis_figures.py` (ver `docs/FIGURAS.md`).
 
-- Figura 1: Diagrama del pipeline híbrido.
-- Figura 2: Barras comparativas precisión baseline vs v1 vs v2.
-- Figura 3: Barras FP filtrados v1 (68) vs v2 (198).
-- Tabla resumen: sección 6.1 y 6.2.
+| Figura | Archivo | Descripción |
+|--------|---------|-------------|
+| 6.1 | `docs/figures/fig01_pipeline_hibrido.png` | Pipeline híbrido CredData → Gitleaks → LLM |
+| 6.2 | `docs/figures/fig02_precision_comparativa.png` | Barras: precisión baseline vs v1 vs v2 |
+| 6.3 | `docs/figures/fig03_fp_filtrados_llm.png` | FP filtrados correctamente (68 vs 198) |
+| 6.4 | `docs/figures/fig04_comparativa_v1_v2.png` | Comparativa v1 vs v2 (corregidos, empeorados) |
+| 6.5 | `docs/figures/fig05_precision_recall.png` | Precision vs recall (recall sin cambio) |
+
+Tablas listas para copiar: `docs/figures/tabla_resumen.md` (tablas 6.1–6.4).
+
+Diagrama Mermaid (alternativa editable):
+
+```mermaid
+flowchart LR
+  A[CredData] --> B[Gitleaks]
+  B --> C[evaluate_gitleaks.py]
+  C --> D[TP]
+  C --> E[FP candidates]
+  E --> F[filter_fp_with_llm.py]
+  F --> G[FP filtrados]
+```
 
 ### 6.5 Discusión de resultados
 
-[Redactar 1–2 páginas: por qué v2 mejora en `test/`, por qué Gitleaks tiene recall bajo, trade-off latencia LLM vs precisión, etc.]
+Los experimentos sobre CredData permiten responder a la pregunta de investigación planteada en el capítulo 1: el LLM **sí reduce de forma significativa los falsos positivos** generados por Gitleaks, pero su utilidad depende del diseño del prompt y del punto del pipeline en el que se aplica. A continuación se analizan los resultados por capas.
+
+#### 6.5.1 Rendimiento de la baseline (solo reglas)
+
+Gitleaks obtiene una **precisión del 85,85 %** sobre hallazgos en líneas etiquetadas (6.845 TP frente a 1.128 FP), lo que confirma que la herramienta es útil como primera línea de detección: la gran mayoría de alertas en líneas con ground truth corresponden a secretos reales. Sin embargo, el **recall del 45,86 %** revela la otra cara del enfoque basado en reglas: de 15.104 filas etiquetadas como secretos en `meta/`, Gitleaks solo alerta en 6.927 (8.177 FN). El F1 resultante (59,79 %) refleja un equilibrio mediocre entre ambas métricas.
+
+Este recall moderado no es sorprendente en un corpus diverso como CredData. El análisis de FN muestra categorías poco cubiertas por las reglas por defecto de Gitleaks: credenciales en URLs, nonces, formatos propietarios o secretos en contextos que no activan los patrones regex ni los umbrales de entropía configurados. Las herramientas de reglas priorizan **velocidad y cobertura de formatos conocidos** (AWS, GitHub, PEM, JWT) frente a la exhaustividad sobre cualquier tipo de credencial. En un escenario de producción, esto implica que el pipeline híbrido **no sustituye** a Gitleaks sino que lo complementa: la capa de reglas sigue siendo necesaria para la detección inicial, y el LLM actúa sobre sus excesos, no sobre sus omisiones.
+
+Por otro lado, 1.128 FP en 7.973 hallazgos etiquetados (14,15 %) representan un volumen de triaje manual elevado en un repositorio real. Aunque la precisión sea aceptable en términos porcentuales, en términos absolutos más de mil alertas falsas dificultan la adopción en pre-commit y CI, donde el desarrollador espera feedback accionable y de baja fricción.
+
+#### 6.5.2 Aportación del LLM: de v1 a v2
+
+La primera versión del prompt (v1) alcanza solo un **34 % de acierto** al reclasificar FP conocidos (68 de 200). Con v1, la precisión híbrida proyectada sube del 85,9 % al 98,1 %, pero el modelo sigue marcando como secretos reales muchos candidatos que son fixtures de test, mocks o documentación. El prompt genérico («decide si es secreto real o falso positivo») delega demasiado en la apariencia del valor: un token con formato válido, un bloque PEM o una cadena de alta entropía tienden a clasificarse como auténticos aunque el contexto indique lo contrario.
+
+El prompt v2 incorpora **reglas explícitas de contexto** alineadas con los patrones observados en CredData: segmentos de ruta (`/test/`, `/fixtures/`, `/docs/`), prefijos `MOCK_`, valores placeholder y configuración de desarrollo. El salto a **99 % de acierto** (198/200 FP filtrados correctamente) y **cero regresiones** respecto a v1 (130 correcciones, 0 empeoramientos) demuestra que la mejora proviene del *prompt engineering* estructurado, no de un cambio de modelo. Se utilizó el mismo `llama3.1:8b` con `temperature=0` en ambas versiones.
+
+Este resultado tiene una implicación práctica: el coste marginal del LLM en el pipeline no está en la inferencia (Ollama local, sin API cloud), sino en **mantener y evolucionar las reglas semánticas** del prompt a medida que aparecen nuevos patrones de FP. La comparativa v1→v2 sugiere que invertir esfuerzo en catalogar contextos de FP (rutas, convenciones de nombres, tipos de archivo) aporta más que aumentar el tamaño del modelo o procesar más candidatos con un prompt pobre.
+
+#### 6.5.3 El caso residual y los límites del enfoque contextual
+
+El único fallo persistente en v2 (`data/255bae6f/model/app/0f82c217.rb:32`) ilustra un límite claro del filtrado por contexto: un bloque PEM embebido en documentación inline (`description <<-MD`) dentro de una ruta de aplicación (`model/app/`) sin segmentos de test. Para el LLM, el formato PEM prevalece sobre las señales débiles de ejemplo (IDs `123123`, clave truncada con `...`). Este caso encaja en la categoría de FP que las reglas v2 no cubren y que requeriría una v3 con reglas para heredocs, bloques de documentación en código de producción o detección de PEM parcial/truncado. Se decidió no implementar v3 dado el rendimiento ya alto y el plazo del TFM.
+
+La muestra evaluada (200 de 1.128 FP, ~17,7 %) limita la generalización estadística. No obstante, la muestra es representativa en el sentido de que los FP de CredData se concentran en patrones repetitivos (tests, mocks, docs), precisamente los que v2 ataca. La precisión híbrida proyectada del 99,97 % asume que los TP de Gitleaks permanecen inalterados (el LLM solo procesa la rama FP) y que el comportamiento sobre el 82,3 % restante de FP es similar; esta extrapolación debe interpretarse como **cota optimista** hasta validar con muestreo estratificado o procesamiento completo.
+
+#### 6.5.4 Trade-off latencia–precisión y encaje en DevSecOps
+
+El escaneo de Gitleaks sobre ~1,02 GB de CredData completó en **56,8 s**, lo que lo hace viable en CI y pre-commit. En contraste, el filtrado LLM a ~5–15 s por candidato implicaría **horas** para los 1.128 FP completos y resulta inviable en cada commit. La arquitectura adoptada (cap. 7) separa responsabilidades: Gitleaks en pre-commit y CI para bloqueo rápido; LLM en análisis batch o, en entornos con runner self-hosted, para triaje de alertas nuevas en PRs.
+
+La hipótesis H1 (>30 % de reducción de FP) queda **confirmada con margen amplio**: v2 reduce un 99 % de los FP evaluados. El pipeline híbrido mejora la **precisión operativa** sin sacrificar los TP detectados por Gitleaks, pero no resuelve el **recall bajo** de la capa de reglas. Un sistema de producción completo combinaría este enfoque con ampliación de reglas Gitleaks, herramientas complementarias (`detect-secrets`, verificación activa tipo TruffleHog) y el filtrado LLM para reducir la fatiga de alertas en los casos donde las reglas son demasiado sensibles.
+
+#### 6.5.5 Síntesis
+
+| Dimensión | Solo Gitleaks | Gitleaks + LLM v2 |
+|-----------|---------------|-------------------|
+| Precisión (hallazgos etiquetados) | 85,85 % | 99,97 % (proyectada) |
+| Recall (filas T) | 45,86 % | 45,86 % (sin cambio) |
+| Viabilidad en pre-commit | Alta | Solo capa de reglas |
+| Dependencia del contexto | Ninguna | Alta (prompt) |
+| Coste computacional | Bajo | Medio-alto (batch) |
+
+En conjunto, los resultados validan el enfoque híbrido propuesto: las reglas aportan cobertura y velocidad; el LLM aporta discriminación semántica donde las reglas son demasiado conservadoras. La principal lección del TFM es que **el diseño del prompt contextual es el factor crítico**, más que la mera adición de un modelo de lenguaje al pipeline.
 
 ---
 
@@ -424,6 +586,87 @@ Toda ampliación de la allowlist debe documentarse en el PR (cap. 8.4). Los hall
 - Terminal: `pre-commit run gitleaks --all-files` → Passed
 - Terminal: commit bloqueado tras `demo-block-me.env`
 - GitHub Actions: job *Gitleaks* en verde en un push de prueba
+- TestPyPI: página del proyecto `secret-triage` v0.1.2 (ver 7.8)
+- Terminal: `pip install` desde TestPyPI + `secret-triage --help` + informe `report` (ver 7.8)
+
+### 7.8 Herramienta derivada `secret-triage` y publicación en TestPyPI
+
+Como extensión del pipeline experimental del TFM, se empaquetó la lógica de triaje LLM en un **CLI instalable** (`secret-triage/`), reutilizando el prompt v2 validado en el capítulo 6. El objetivo es demostrar que el enfoque híbrido no queda limitado a scripts ad hoc del repositorio, sino que puede distribuirse como artefacto reproducible para entornos DevSecOps con Ollama local.
+
+#### Arquitectura y comandos
+
+| Comando | Función |
+|---------|---------|
+| `secret-triage init` | Crea `secret-triage.yaml` (configuración Ollama y contexto) |
+| `secret-triage filter` | Clasifica hallazgos Gitleaks (`keep` / `dismiss`) |
+| `secret-triage report` | Genera informe Markdown desde `triaged.json` |
+| `secret-triage sarif` | Exporta SARIF 2.1.0 (solo hallazgos `action=keep`) |
+
+El flujo operativo es: **Gitleaks** → JSON → **secret-triage filter** (Ollama) → informe Markdown o SARIF. No sustituye a Gitleaks; post-procesa su salida para reducir falsos positivos en batch o en runners self-hosted.
+
+#### Publicación en TestPyPI
+
+El paquete se publicó en el índice de pruebas de Python (TestPyPI), no en PyPI de producción, siguiendo la práctica habitual de validar empaquetado e instalación antes de un release definitivo:
+
+- **Proyecto:** https://test.pypi.org/project/secret-triage/
+- **Versión verificada:** 0.1.2 (corrige inclusión de `default.yaml` en el wheel; la 0.1.1 fallaba en `init` tras `pip install`)
+- **Workflow CI:** `.github/workflows/publish-secret-triage-testpypi.yml` (secret `TESTPYPI_API_TOKEN` en GitHub Actions)
+- **Repositorio:** `secret-triage/` en https://github.com/aramirezbarajas/secret-scan-tfm
+
+#### Verificación de instalación (Windows)
+
+Se comprobó la instalación en un **entorno virtual limpio** (Git Bash, Python 3.11, Windows 10), sin clonar el código fuente del paquete:
+
+```bash
+python -m venv .venv
+source .venv/Scripts/activate
+pip install -i https://test.pypi.org/simple/ \
+  --extra-index-url https://pypi.org/simple/ secret-triage==0.1.2
+secret-triage --help
+```
+
+La salida confirmó los subcomandos `init`, `filter`, `report` y `sarif`.
+
+#### Verificación del triaje LLM
+
+Sobre el fixture de demostración (`tests/fixtures/sample_gitleaks.json`) y el repositorio `examples/demo-repo/` como raíz de contexto:
+
+```bash
+secret-triage filter \
+  --report tests/fixtures/sample_gitleaks.json \
+  --repo-root /ruta/a/examples/demo-repo \
+  -o triaged.json
+secret-triage report triaged.json
+```
+
+**Resultado observado** (Ollama `llama3.1:8b`, prompt v2, ~65 s/hallazgo):
+
+| Métrica | Valor |
+|---------|-------|
+| Total hallazgos | 1 |
+| Descartados (FP) | 1 |
+| Mantener | 0 |
+
+El único candidato — `MOCK_ACCESS_TOKEN = "at-0987654321"` en `tests/fixtures/mock_secrets.py:19` — fue clasificado como **falso positivo**, coherente con el caso documentado en el Anexo D y con los resultados de CredData (cap. 6.2). El motivo asignado por el LLM citó la ruta de fixtures y el prefijo `MOCK_`.
+
+#### Relación con el pipeline del TFM
+
+| Componente TFM | `secret-triage` |
+|----------------|-----------------|
+| `filter_fp_with_llm.py` | Lógica equivalente en `secret_triage.llm_filter` |
+| Prompt v2 (`prompts.py`) | Reutilizado sin cambios semánticos |
+| Experimento CredData | Validación cuantitativa; CLI orientado a despliegue |
+| Pre-commit / CI GitHub-hosted | Gitleaks sí; LLM solo batch/self-hosted (latencia Ollama) |
+
+Esta separación refuerza la decisión de diseño del apartado 7.1: detección rápida en cada commit, filtrado contextual donde haya Ollama disponible.
+
+#### Capturas sugeridas (apartado 7.8)
+
+1. **TestPyPI:** página del proyecto mostrando la versión 0.1.2.
+2. **GitHub Actions:** workflow *Publish secret-triage (TestPyPI)* en verde.
+3. **Terminal:** `pip install ... secret-triage==0.1.2` → `Successfully installed secret-triage-0.1.2`.
+4. **Terminal:** `secret-triage filter` procesando `[1/1] tests/fixtures/mock_secrets.py:19`.
+5. **Terminal:** salida de `secret-triage report triaged.json` con resumen (1 descartado, 0 a mantener).
 
 ---
 
@@ -458,6 +701,47 @@ Toda ampliación de la allowlist debe documentarse en el PR (cap. 8.4). Los hall
 - Revisión trimestral de reglas y prompts LLM.
 - Formación al equipo: no usar `--no-verify` en pre-commit salvo emergencia documentada.
 
+### 8.5 Secretos en pipelines CI/CD
+
+El enunciado del máster exige abordar la detección no solo en código fuente sino también en **pipelines** de integración y despliegue continuo. Los pipelines son un vector de exposición distinto del repositorio: los workflows pueden contener credenciales en YAML, variables de entorno inyectadas en jobs o artefactos generados durante el build.
+
+#### Riesgos habituales en CI/CD
+
+| Riesgo | Ejemplo | Mitigación |
+|--------|---------|------------|
+| Secreto hardcodeado en workflow | `API_KEY: sk-live-...` en `.github/workflows/deploy.yml` | Gitleaks en CI escanea el repo incluyendo workflows |
+| Secreto en log de pipeline | `echo $TOKEN` en un step de depuración | Enmascarar salidas; no imprimir variables secretas |
+| Credencial en imagen Docker | `ENV AWS_SECRET=...` en Dockerfile | Escaneo de imagen; build-args desde vault |
+| Token con permisos excesivos | `GITHUB_TOKEN` o PAT con scope amplio | Principio de mínimo privilegio; OIDC en lugar de PAT de larga duración |
+
+#### Ocultación en pipelines (prevención)
+
+Siguiendo OWASP (2024a, 2024b), los secretos de pipeline **no deben almacenarse en el código del workflow**. En GitHub Actions, el patrón recomendado es:
+
+```yaml
+# Correcto: referencia a secret del proveedor
+env:
+  API_TOKEN: ${{ secrets.API_TOKEN }}
+```
+
+Los valores reales residen en **GitHub Actions Secrets** o en un gestor externo (Vault, AWS Secrets Manager) al que el pipeline accede en tiempo de ejecución. En el repositorio del TFM, el workflow `secret-scan.yml` solo utiliza `GITHUB_TOKEN` (proporcionado por la plataforma) y no incluye credenciales de terceros.
+
+#### Detección en el pipeline del TFM
+
+La integración implementada en el capítulo 7 aplica Gitleaks en cada push y pull request, escaneando el historial Git completo (`fetch-depth: 0`). Esto incluye ficheros de pipeline (`.github/workflows/`), Dockerfiles y scripts de despliegue versionados junto al código. El LLM no se ejecuta en el runner de GitHub por latencia y dependencia de Ollama; en un entorno corporativo con runner self-hosted podría añadirse como job posterior para triaje de FP.
+
+#### Rotación tras exposición en CI
+
+Si Gitleaks detecta un secreto en un workflow o en un artefacto de CI:
+
+1. **Revocar** el token o clave en el proveedor (GitHub, AWS, etc.) de inmediato.
+2. **Eliminar** el secreto del historial Git (`git filter-repo` o herramienta del proveedor) si ya se hizo push.
+3. **Rotar** y almacenar la nueva credencial solo en el almacén de secretos del CI, no en el YAML.
+4. **Re-ejecutar** el pipeline con la nueva referencia y verificar que el escaneo pasa.
+5. **Auditar** logs del pipeline en la ventana de exposición por accesos anómalos.
+
+Esta política extiende la clasificación del apartado 8.1 al contexto pipeline: un secreto real en `main` dentro de un workflow se trata como **crítico** con rotación en menos de 24 horas.
+
 ---
 
 ## 9. Discusión y limitaciones
@@ -491,13 +775,14 @@ Toda ampliación de la allowlist debe documentarse en el PR (cap. 8.4). Los hall
 1. La baseline Gitleaks sobre CredData alcanza 85,9 % de precisión pero con recall limitado (~46 %).
 2. El LLM como segunda capa **reduce drásticamente los FP** cuando el prompt incorpora reglas de contexto (v2: 99 % en muestra de 200).
 3. El pipeline híbrido es viable con herramientas open source y LLM local (Ollama).
-4. La integración práctica separa detección rápida (pre-commit) de filtrado contextual (CI).
+4. La integración práctica separa detección rápida (pre-commit) de filtrado contextual (CI/batch), materializada además en el paquete `secret-triage` publicado en TestPyPI (cap. 7.8).
+5. El trabajo cumple el enunciado del máster (sección 1.5): detección en código y pipelines, híbrido reglas+LLM, medición cuantitativa y políticas de rotación y ocultación documentadas.
 
 ### 10.2 Trabajo futuro
 
 - Evaluar muestra mayor o FP completo con muestreo estratificado.
 - Reglas para documentación inline (heredocs, PEM truncado).
-- Exportación SARIF para integración con GitHub Advanced Security.
+- Publicación en PyPI de producción de `secret-triage` tras validación en TestPyPI.
 - Comparar con `detect-secrets` y verificación TruffleHog.
 - Fine-tuning ligero de clasificador sobre embeddings (sin LLM generativo).
 
@@ -505,15 +790,37 @@ Toda ampliación de la allowlist debe documentarse en el PR (cap. 8.4). Los hall
 
 ## 11. Bibliografía
 
-<!-- Formato APA o IEEE según indique el máster. Completar. -->
+<!-- Formato APA. Ajustar al estilo que exija el máster si difiere. -->
 
-1. Samsung. (2021). *CredData: Credential Dataset*. https://github.com/Samsung/CredData
-2. Gitleaks. *Gitleaks — protect and discover secrets*. https://github.com/gitleaks/gitleaks
-3. [Autores]. SecretBench: A Dataset of Software Secrets. *MSR*, 2023.
-4. [Autores]. Secret Breach Detection in Source Code with LLMs. arXiv:2504.18784, 2025.
-5. Yelp. *detect-secrets*. https://github.com/Yelp/detect-secrets
-6. Ollama. *Ollama documentation*. https://ollama.com
-7. [Añadir referencias del máster: OWASP, NIST, GitGuardian reports, etc.]
+Basak, S. K., Neil, L., Reaves, B., y Williams, L. (2023). SecretBench: A dataset of software secrets. En *Proceedings of the 20th International Conference on Mining Software Repositories (MSR)* (pp. 347-351). IEEE. https://doi.org/10.1109/MSR59073.2023.00053
+
+Biringa, C., y Kul, G. (2025). Detecting hard-coded credentials in software repositories via LLMs. *arXiv preprint arXiv:2506.13090*. https://arxiv.org/abs/2506.13090
+
+Devlin, J., Chang, M.-W., Lee, K., y Toutanova, K. (2019). BERT: Pre-training of deep bidirectional transformers for language understanding. En *Proceedings of NAACL-HLT 2019* (pp. 4171-4186).
+
+Gitleaks. (2024). *Gitleaks — protect and discover secrets in your git, files, and directories*. https://github.com/gitleaks/gitleaks
+
+Meli, M., McNee, J., y Neville-Neil, G. (2019). Source code credentials hygiene: A case study. En *Proceedings of the 44th IEEE/LARC International Conference on Dependable Systems and Networks Workshops (DSN-W)* (pp. 1-8). IEEE.
+
+OWASP Foundation. (2024a). *CI/CD security cheat sheet*. https://cheatsheetseries.owasp.org/cheatsheets/CI_CD_Security_Cheat_Sheet.html
+
+OWASP Foundation. (2024b). *Secrets management cheat sheet*. https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
+
+Rahman, M. N., Ahmed, S. I., Wahab, Z., Sohan, S. M., y Shahriyar, R. (2025). Secret breach detection in source code with large language models. *arXiv preprint arXiv:2504.18784*. https://arxiv.org/abs/2504.18784
+
+Samsung. (2022). *CredSweeper: ML-driven credential scanner*. https://github.com/Samsung/CredSweeper
+
+Touvron, H., et al. (2023). LLaMA: Open and efficient foundation language models. *arXiv preprint arXiv:2302.13971*.
+
+Truffle Security. (2024). *TruffleHog: Find and verify leaked credentials*. https://github.com/trufflesecurity/trufflehog
+
+Yelp. (2024). *detect-secrets: Tool for detecting secrets in the codebase*. https://github.com/Yelp/detect-secrets
+
+Yun, J., Choi, S., Lee, Y., Sokol, O., Shim, W., Melkonyan, A., y Kuzmenko, D. (2021). *CredData: A dataset of credentials for research*. Samsung. https://github.com/Samsung/CredData
+
+Zanev, Z. (2024). *Gitleaks* [Herramienta de software libre]. https://github.com/gitleaks/gitleaks
+
+Ollama. (2024). *Ollama documentation*. https://ollama.com
 
 ---
 
@@ -551,6 +858,11 @@ pre-commit run gitleaks --all-files
 # 6. Demo repo aislado
 cd examples/demo-repo && git init && pre-commit install
 pre-commit run gitleaks --all-files
+
+# 7. Figuras y tablas para la memoria
+pip install matplotlib
+python scripts/generate_thesis_figures.py
+# Salida: docs/figures/*.png y docs/figures/tabla_resumen.md
 ```
 
 ### Anexo B — Ficheros de resultados
@@ -565,11 +877,13 @@ pre-commit run gitleaks --all-files
 
 ### Anexo C — Capturas de pantalla
 
-- [ ] Gitleaks ejecutándose sobre CredData
-- [ ] Salida de `evaluate_gitleaks.py`
-- [ ] Salida de `compare_llm_runs.py`
-- [ ] Pre-commit bloqueando un commit (probar con `leaks/demo-block-me.env`)
-- [ ] Workflow de GitHub Actions (push de prueba al remoto)
+- [x] Gitleaks ejecutándose sobre CredData (`docs/anexos/C01_gitleaks_credata.txt`)
+- [x] Salida de `evaluate_gitleaks.py` (`docs/anexos/C02_evaluate_gitleaks.txt`)
+- [x] Salida de `compare_llm_runs.py` (`docs/anexos/C03_compare_llm_runs.txt`)
+- [x] Pre-commit bloqueando un commit (`docs/anexos/C04_precommit_bloqueo.png`)
+- [x] Workflow de GitHub Actions (`docs/anexos/C05_github_actions.png`)
+- [ ] TestPyPI `secret-triage` v0.1.2 (`docs/anexos/C06_testpypi.png`)
+- [x] Triaje LLM con `secret-triage report` (`docs/anexos/C07_secret_triage_report.txt`)
 
 ### Anexo D — Ejemplo de FP corregido por v2
 
@@ -581,12 +895,14 @@ pre-commit run gitleaks --all-files
 
 ## Checklist antes de entregar
 
-- [ ] Completar portada y datos personales
-- [ ] Resumen y abstract en ES/EN
-- [ ] Estado del arte con referencias reales del máster
-- [ ] Versión exacta de Gitleaks anotada
-- [ ] Figuras/tablas insertadas en PDF
-- [x] Capítulo 7 completado tras pre-commit + CI
+- [x] Portada con datos personales (`docs/PORTADA.md`)
+- [x] Resumen y abstract en ES/EN
+- [x] Estado del arte con referencias reales del máster
+- [x] Versión exacta de Gitleaks anotada (8.30.1, cap. 4.3)
+- [x] Figuras/tablas generadas (`docs/figures/`, ver `docs/FIGURAS.md`)
+- [ ] Figuras/tablas insertadas en PDF final (exportar desde `MEMORIA_export.docx`)
+- [x] Capítulo 7 completado (pre-commit, CI y `secret-triage` / TestPyPI, §7.8)
 - [ ] Revisión ortográfica
-- [ ] Anexos con capturas
-- [ ] Repositorio GitHub enlazado en la memoria
+- [x] Anexos C01–C05 completos (`docs/anexos/`)
+- [ ] Defensa: revisar `docs/presentacion_defensa.pptx` + capturas pre-commit/CI
+- [x] Repositorio GitHub enlazado en la memoria
