@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from secret_triage.config import DEFAULT_CONFIG, find_config, load_config
+from secret_triage.config import default_config_text, find_config, load_config
 from secret_triage.context import read_line_context
 from secret_triage.gitleaks_io import load_gitleaks_report
 from secret_triage.llm_filter import classify_finding, ensure_ollama_model
@@ -22,7 +22,7 @@ def cmd_init(args: argparse.Namespace) -> int:
     if target.exists() and not args.force:
         print(f"Ya existe {target}. Usa --force para sobrescribir.", file=sys.stderr)
         return 1
-    target.write_text(DEFAULT_CONFIG.read_text(encoding="utf-8"), encoding="utf-8")
+    target.write_text(default_config_text(), encoding="utf-8")
     print(f"Config creada: {target}")
     return 0
 
@@ -30,6 +30,7 @@ def cmd_init(args: argparse.Namespace) -> int:
 def cmd_filter(args: argparse.Namespace) -> int:
     config_path = Path(args.config) if args.config else find_config()
     cfg = load_config(config_path)
+    config_label = str(config_path) if config_path else "default (empaquetada)"
     llm_cfg = cfg.get("llm", {})
     ctx_cfg = cfg.get("context", {})
     repo_root = Path(args.repo_root or ".").resolve()
@@ -40,7 +41,7 @@ def cmd_filter(args: argparse.Namespace) -> int:
         findings = findings[: int(args.limit)]
 
     if args.dry_run:
-        print(f"[dry-run] {len(findings)} hallazgos; config={config_path}")
+        print(f"[dry-run] {len(findings)} hallazgos; config={config_label}")
         return 0
 
     ensure_ollama_model(llm_cfg)

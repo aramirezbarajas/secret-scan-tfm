@@ -1,0 +1,21 @@
+# Configuracion por defecto de secret-triage
+# Copiar a secret-triage.yaml en la raiz del repo escaneado (opcional)
+
+llm:
+  provider: ollama
+  base_url: "http://localhost:11434"
+  model: "llama3.1:8b"
+  temperature: 0
+  timeout_seconds: 300
+  retries: 3
+  prompt_version: v2
+
+context:
+  line_radius: 4
+  max_line_chars: 200
+  max_context_chars: 3000
+
+filter:
+  # Solo reclasificar; por defecto no descarta hallazgos sin llamar al LLM
+  limit: null
+  dry_run: false
