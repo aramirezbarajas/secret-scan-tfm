@@ -14,6 +14,8 @@ Mini proyecto incluido en el TFM `secret-scan-tfm` para demostrar **deteccion de
 
 ## Uso rapido (repo aislado)
 
+Guia imprimible: **`DEMO_GUIA.docx`** (regenerar con `python scripts/generate_demo_guia_docx.py`).
+
 Ideal para la memoria y para talleres: el demo funciona como repositorio Git independiente.
 
 ```bash
