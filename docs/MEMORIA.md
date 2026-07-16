@@ -76,7 +76,7 @@ Los modelos de lenguaje (LLM) permiten analizar el **contexto semántico** de un
 
 ### 1.4 Estructura del documento
 
-El capítulo 2 revisa el estado del arte en detección de secretos: herramientas basadas en reglas, benchmarks etiquetados (CredData, SecretBench) y trabajos recientes que combinan escáneres con LLM. El capítulo 3 define los objetivos, la hipótesis de investigación y los criterios de éxito. Los capítulos 4 y 5 describen la metodología experimental y la implementación del pipeline —scripts, configuración y capas Gitleaks y Ollama—. El capítulo 6 presenta los resultados sobre CredData: baseline de reglas, filtrado LLM (prompts v1 y v2) y su discusión. El capítulo 7 documenta la integración DevSecOps en pre-commit y GitHub Actions, incluida la herramienta empaquetada `secret-triage` publicada en TestPyPI; el capítulo 8 expone las políticas de rotación y ocultación de credenciales, incluidos los secretos en pipelines CI/CD. El capítulo 9 analiza limitaciones y amenazas a la validez; el capítulo 10 recoge las conclusiones y líneas de trabajo futuro. Por último, el capítulo 11 recoge la bibliografía y el capítulo 12 los anexos con comandos de reproducción, ficheros de resultados y capturas.
+El capítulo 2 revisa el estado del arte en detección de secretos: herramientas basadas en reglas, benchmarks etiquetados (CredData, SecretBench) y trabajos recientes que combinan escáneres con LLM. El capítulo 3 define los objetivos, la hipótesis de investigación y los criterios de éxito. Los capítulos 4 y 5 describen la metodología experimental y la implementación del pipeline —scripts, configuración y capas Gitleaks y Ollama—. El capítulo 6 presenta los resultados sobre CredData: baseline de reglas, filtrado LLM (prompts v1 y v2), discusión y un experimento de integridad de datos (detección de envenenamiento en `fp_candidates.json`, §6.6). El capítulo 7 documenta la integración DevSecOps en pre-commit y GitHub Actions, incluida la herramienta empaquetada `secret-triage` publicada en TestPyPI; el capítulo 8 expone las políticas de rotación y ocultación de credenciales, incluidos los secretos en pipelines CI/CD. El capítulo 9 analiza limitaciones y amenazas a la validez; el capítulo 10 recoge las conclusiones y líneas de trabajo futuro. Por último, el capítulo 11 recoge la bibliografía y el capítulo 12 los anexos con comandos de reproducción, ficheros de resultados y capturas.
 
 ### 1.5 Alineación con el enunciado del máster
 
@@ -96,7 +96,7 @@ La tabla siguiente relaciona cada exigencia del enunciado con el contenido y la 
 | Integración **pre-commit** | `.pre-commit-config.yaml`; demo con commit bloqueado | 7.1, 7.3, Anexo C |
 | Integración **CI/CD** | Gitleaks Action en push/PR a `main` | 7.2, 7.4 |
 | **Empaquetado reproducible** | CLI `secret-triage` publicado en TestPyPI; verificación `pip install` en Windows | 7.8 |
-| **Medir resultados** | TP/FP/recall, precisión híbrida, comparativa v1 vs v2, figuras | 6, `docs/figures/` |
+| **Medir resultados** | TP/FP/recall, precisión híbrida, comparativa v1 vs v2, figuras; detección de envenenamiento P2 | 6, 6.6, `docs/figures/` |
 | **Políticas de rotación y ocultación** | Clasificación de hallazgos, rotación, ocultación en vault/CI, gobierno | 8 |
 
 El trabajo cubre de forma explícita las seis dimensiones del enunciado: detección (código + pipeline), enfoque híbrido reglas+LLM, integración operativa (pre-commit/CI), medición experimental y marco de respuesta organizativa ante hallazgos.
@@ -450,6 +450,88 @@ La hipótesis H1 (>30 % de reducción de FP) queda **confirmada con margen ampli
 
 En conjunto, los resultados validan el enfoque híbrido propuesto: las reglas aportan cobertura y velocidad; el LLM aporta discriminación semántica donde las reglas son demasiado conservadoras. La principal lección del TFM es que **el diseño del prompt contextual es el factor crítico**, más que la mera adición de un modelo de lenguaje al pipeline.
 
+### 6.6 Integridad de datos y detección de envenenamiento (experimento P2)
+
+El pipeline híbrido no solo depende de Gitleaks y del LLM: también **confía en artefactos intermedios** —en particular `results/fp_candidates.json`— que alimentan el filtrado batch. Si un atacante o un insider altera ese fichero (inyecta filas, cambia etiquetas `ground_truth` o duplica entradas), las métricas de evaluación y las decisiones de triaje pueden distorsionarse sin que cambie el código del escáner. Este apartado extiende el TFM hacia la **detección de envenenamiento de datos** (data poisoning) en esa capa, reutilizando el mismo repositorio y CredData.
+
+#### 6.6.1 Pregunta y amenaza
+
+**Pregunta complementaria:** ¿pueden mecanismos ligeros (hash de manifiesto, subconjunto dorado y deriva estadística) detectar alteraciones en `fp_candidates.json` antes de que afecten al LLM o a los informes?
+
+**Vector P2 modelado:** manipulación del export de falsos positivos tras `evaluate_gitleaks.py`. Escenario: compromiso del almacén de resultados o supply-chain interna antes del job de triaje LLM.
+
+#### 6.6.2 Implementación
+
+Scripts en `scripts/` (repositorio GitHub):
+
+| Script | Función |
+|--------|---------|
+| `build_trust_baseline.py` | Genera manifiesto `results/trust_baseline.json` (SHA-256, recuento, distribución de etiquetas, hash del golden set) |
+| `inject_data_poison.py` | Simula ataque P2: modos `inject_rows`, `flip_labels`, `inflate` |
+| `detect_data_poison.py` | Ejecuta detectores D1–D5 y emite `results/poison_detection_report.json` |
+
+**Conjunto dorado:** `data/golden_fp_sample.json` — siete huellas `file:line` fijas (incluye casos MOCK y rutas `test/`, alineados con el Anexo D).
+
+**Detectores:**
+
+| ID | Nombre | Criterio de alerta |
+|----|--------|-------------------|
+| D1 | Integridad (hash) | SHA-256 del fichero ≠ manifiesto |
+| D2 | Golden subset | Campos críticos del subconjunto dorado alterados o claves ausentes |
+| D3 | Deriva de recuento | Número de filas ≠ 1.128 esperadas |
+| D4 | Deriva PSI | Population Stability Index sobre `ground_truth` > 0,2 |
+| D5 | Marcadores sintéticos | Solo laboratorio (`_poison_*`, rutas `poison_demo`) |
+
+#### 6.6.3 Diseño experimental
+
+Matriz ejecutada sobre la baseline de 1.128 FP (CredData). Semilla reproducible: 42. Detalle completo en `docs/POISON_P2_RESULTADOS.md`.
+
+| ID | Ataque | % veneno | Filas afectadas |
+|----|--------|----------|-----------------|
+| A | Limpio (control) | 0 % | 0 |
+| B | `inject_rows` | 5 % | +56 filas sintéticas (`ground_truth=T`) |
+| C | `flip_labels` | 5 % | 56 etiquetas F/X → T |
+| D | `flip_labels` | 30 % | 338 etiquetas volteadas |
+| F | `flip_labels` | 1 % | 11 etiquetas volteadas |
+
+#### 6.6.4 Resultados
+
+**Tabla 6.6 — Detección por modo de ataque P2**
+
+| ID | Ataque | D1 hash | D2 golden | D3 recuento | D4 PSI | ¿Detectado? |
+|----|--------|---------|-----------|-------------|--------|-------------|
+| A | Limpio | OK | OK | OK | OK (0,00) | No |
+| B | `inject_rows` 5 % | ALERTA | OK | ALERTA (+56) | ALERTA (0,51) | **Sí** |
+| C | `flip_labels` 5 % | ALERTA | OK | OK | ALERTA (0,54) | **Sí** |
+| D | `flip_labels` 30 % | ALERTA | ALERTA | OK | ALERTA (3,89) | **Sí** |
+| F | `flip_labels` 1 % | ALERTA | OK | OK | OK (0,09) | **Parcial** |
+
+**Interpretación:**
+
+1. **`flip_labels` es más sigiloso que `inject_rows`:** el recuento no cambia (D3 en OK), simulando un atacante que altera etiquetas sin modificar el volumen del dataset.
+2. **D4 (PSI) detecta envenenamiento ≥5 %** en la distribución de `ground_truth`; con **1 %** no supera el umbral 0,2.
+3. **D1 (hash)** alerta siempre que exista manifiesto previo y el fichero haya cambiado — única garantía robusta en ataques muy sutiles (F).
+4. **D2 (golden)** alerta cuando el ataque toca claves del subconjunto dorado (caso D, 30 %).
+5. La combinación **hash + golden + PSI** supera la comprobación ingenua de «¿es el mismo fichero cada día?»: los datos legítimos pueden cambiar por nuevas ejecuciones; lo relevante es **coherencia con manifiesto versionado y comportamiento del golden set**.
+
+#### 6.6.5 Relación con el pipeline y políticas
+
+| Componente del TFM | Implicación si hay envenenamiento P2 |
+|--------------------|--------------------------------------|
+| `evaluate_gitleaks.py` | Métricas TP/FP/recall falsas si las etiquetas o filas están corruptas |
+| `filter_fp_with_llm.py` | Candidatos alterados pueden clasificarse mal (FP→keep o TP→dismiss) |
+| `secret-triage` | Mismo riesgo sobre informes JSON de Gitleaks |
+| Cap. 8 (políticas) | Respuesta: congelar dataset, restaurar manifiesto, rollback, auditoría de accesos |
+
+**Respuesta operativa recomendada** (alineada con cap. 8): versionar manifiestos de integridad junto a releases del pipeline; ejecutar `detect_data_poison.py` antes de jobs LLM batch; documentar en PR cualquier cambio en `fp_candidates.json` (análogo al gobierno de allowlists).
+
+#### 6.6.6 Limitaciones del experimento P2
+
+- Solo se evalúa el vector P2 (candidatos FP), no el envenenamiento de `meta/` (P1) ni del prompt (P3).
+- El golden set actual tiene siete claves; ampliarlo aumentaría sensibilidad de D2.
+- D5 depende de marcadores de laboratorio; en producción la detección recae en D1+D2+D4.
+- No se midió impacto causal en métricas híbridas tras envenenar y ejecutar el LLM (línea futura).
+
 ---
 
 ## 7. Integración en pre-commit y CI/CD
@@ -777,12 +859,14 @@ Esta política extiende la clasificación del apartado 8.1 al contexto pipeline:
 3. El pipeline híbrido es viable con herramientas open source y LLM local (Ollama).
 4. La integración práctica separa detección rápida (pre-commit) de filtrado contextual (CI/batch), materializada además en el paquete `secret-triage` publicado en TestPyPI (cap. 7.8).
 5. El trabajo cumple el enunciado del máster (sección 1.5): detección en código y pipelines, híbrido reglas+LLM, medición cuantitativa y políticas de rotación y ocultación documentadas.
+6. La integridad de artefactos intermedios (`fp_candidates.json`) puede monitorizarse con hash, golden set y deriva estadística (§6.6).
 
 ### 10.2 Trabajo futuro
 
 - Evaluar muestra mayor o FP completo con muestreo estratificado.
 - Reglas para documentación inline (heredocs, PEM truncado).
 - Publicación en PyPI de producción de `secret-triage` tras validación en TestPyPI.
+- Ampliar golden set y evaluar vectores P1 (meta/) y P3 (prompt).
 - Comparar con `detect-secrets` y verificación TruffleHog.
 - Fine-tuning ligero de clasificador sobre embeddings (sin LLM generativo).
 
@@ -863,6 +947,11 @@ pre-commit run gitleaks --all-files
 pip install matplotlib
 python scripts/generate_thesis_figures.py
 # Salida: docs/figures/*.png y docs/figures/tabla_resumen.md
+
+# 8. Experimento P2 — envenenamiento de fp_candidates
+python scripts/build_trust_baseline.py
+python scripts/inject_data_poison.py --rate 0.05 --mode flip_labels --output results/fp_candidates_p02_flip.json
+python scripts/detect_data_poison.py --fp results/fp_candidates_p02_flip.json
 ```
 
 ### Anexo B — Ficheros de resultados
@@ -874,6 +963,9 @@ python scripts/generate_thesis_figures.py
 | `results/fp_after_llm_v1.json` | Resultados prompt v1 |
 | `results/fp_after_llm_v2.json` | Resultados prompt v2 |
 | `results/llm_evaluation_summary_v2.json` | Métricas agregadas v2 |
+| `results/trust_baseline.json` | Manifiesto de integridad (experimento P2) |
+| `results/poison_detection_report.json` | Informe de detectores D1–D5 |
+| `docs/POISON_P2_RESULTADOS.md` | Tabla reproducible del experimento P2 |
 
 ### Anexo C — Capturas de pantalla
 
@@ -902,6 +994,7 @@ python scripts/generate_thesis_figures.py
 - [x] Figuras/tablas generadas (`docs/figures/`, ver `docs/FIGURAS.md`)
 - [ ] Figuras/tablas insertadas en PDF final (exportar desde `MEMORIA_export.docx`)
 - [x] Capítulo 7 completado (pre-commit, CI y `secret-triage` / TestPyPI, §7.8)
+- [x] Experimento P2 envenenamiento documentado (§6.6, `docs/POISON_P2_RESULTADOS.md`)
 - [ ] Revisión ortográfica
 - [x] Anexos C01–C05 completos (`docs/anexos/`)
 - [ ] Defensa: revisar `docs/presentacion_defensa.pptx` + capturas pre-commit/CI
