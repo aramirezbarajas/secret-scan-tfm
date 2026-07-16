@@ -1,0 +1,13 @@
+{
+  "description": "Subconjunto dorado de fp_candidates para detectar alteraciones (experimento P2).",
+  "version": 1,
+  "fingerprint_keys": [
+    "data/0436af4a/test/src/114e3c56.cs:19",
+    "data/0436af4a/test/src/114e3c56.cs:22",
+    "data/0436af4a/docs/94b788c0.md:77",
+    "data/0436af4a/src/5b74a8e2.cs:12",
+    "data/0436af4a/src/5b74a8e2.cs:15",
+    "data/0436af4a/src/c08e419d.cs:12",
+    "data/02dfa7ec/setting/3279f9a1.py:100"
+  ]
+}
