@@ -1,0 +1,32 @@
+# compare_llm_runs.py
+# Generado: 2026-07-16T10:49:41
+
+Exit: 0
+
+============================================================
+Comparativa LLM v1 vs v2 (solo FP conocidos en comun)
+============================================================
+Candidatos en comun          : 199
+Corregidos (v1 mal -> v2 bien): 130
+Empeorados (v1 bien -> v2 mal): 0
+Iguales incorrectos           : 1
+Iguales correctos             : 68
+
+Metricas agregadas:
+  FP filtrados v1: 68 (34.00%)
+  FP filtrados v2: 198 (99.00%)
+  Precision hibrida v1: 98.11%
+  Precision hibrida v2: 99.97%
+
+Ejemplos corregidos en v2 (max 5):
+  - data/0436af4a/src/5b74a8e2.cs:12:generic-api-key
+    v2: El valor parece ser una credencial de desarrollo y no se utiliza en producci�n. La constante est� comentada y el cliente ID es diferente al utilizado en la l�nea 15.
+  - data/0436af4a/src/5b74a8e2.cs:15:generic-api-key
+    v2: El valor parece ser una credencial de desarrollo, ya que se encuentra en un archivo src y tiene valores de prueba como 'localhost'
+  - data/0436af4a/src/c08e419d.cs:12:generic-api-key
+    v2: El valor parece ser una credencial de OAuth para pruebas, ya que se encuentra en el archivo src/c08e419d.cs y tiene un formato t�pico de valores de prueba.
+  - data/0a0d22aa/test/pkg/5f40d16d.go:45:generic-api-key
+    v2: Ruta contiene /test/ y el valor es una credencial en formato base64
+  - data/10e03406/test/pkg/0cd5033e.go:107:generic-api-key
+    v2: La ruta del archivo contiene /test/ y el contexto sugiere que se trata de un token de prueba
+============================================================

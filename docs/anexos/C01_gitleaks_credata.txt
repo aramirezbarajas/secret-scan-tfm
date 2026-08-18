@@ -1,0 +1,16 @@
+# Gitleaks sobre CredData
+# Generado: 2026-07-16T10:49:37
+
+Comando: gitleaks detect --source datasets/creddata/data --no-git
+Exit: 1
+
+○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+10:49AM INF scanned ~1006021478 bytes (1.01 GB) in 59.5s
+10:49AM WRN leaks found: 8083
+
+Informe existente: results/gitleaks_report.json (6.53 MB)

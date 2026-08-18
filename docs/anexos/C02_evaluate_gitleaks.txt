@@ -1,0 +1,54 @@
+# evaluate_gitleaks.py
+# Generado: 2026-07-16T10:49:40
+
+Exit: 0
+
+Cargando meta desde C:\IA\secret-scan-tfm\datasets\creddata\meta ...
+Cargando informe C:\IA\secret-scan-tfm\results\gitleaks_report.json ...
+============================================================
+Evaluaci�n Gitleaks vs CredData (meta/)
+============================================================
+Hallazgos Gitleaks total     : 8210
+L�neas etiquetadas en meta   : 66898
+  - secretos reales (T)      : 15104
+
+Clasificaci�n de hallazgos (por l�nea etiquetada):
+  TP (alerta + GroundTruth=T) : 6845
+  FP (alerta + GroundTruth=F/X): 1128
+  Sin etiqueta en meta        : 237
+
+Cobertura de secretos reales:
+  True rows detectados        : 6927 / 15104
+  FN (T no detectado)         : 8177
+
+M�tricas (alcance l�neas etiquetadas):
+  Precisi�n                   : 85.85%
+  Recall (filas T)            : 45.86%
+  F1                          : 59.79%
+  Tasa FP / hallazgos etiquet.: 14.15%
+============================================================
+
+Muestra de secretos reales NO detectados (m�x. 20):
+  - id=18157 data/00408ef6/lib/eee97fd2.c:4256 [URL Credentials]
+  - id=41696 data/00408ef6/lib/8a4d2e16.c:466 [Nonce]
+  - id=110101 data/00408ef6/lib/8a4d2e16.c:122 [Nonce]
+  - id=110102 data/00408ef6/lib/8a4d2e16.c:123 [Nonce]
+  - id=1330673 data/00408ef6/src/app/bbcf1132.cpp:39 [UUID]
+  - id=47583 data/0064e882/test/d841edb7.cs:30 [Password]
+  - id=29502 data/02dfa7ec/test/setting/e43ec22b.py:15 [Password]
+  - id=32637 data/02dfa7ec/conf/a758153b.example:94 [URL Credentials]
+  - id=32675 data/02dfa7ec/conf/a758153b.example:22 [URL Credentials]
+  - id=32757 data/02dfa7ec/conf/61ed9af5.example:28 [Key:Secret]
+  - id=50371 data/02dfa7ec/test/a5c0c9aa.py:60 [Password]
+  - id=107474 data/02dfa7ec/conf/5fb5a784.env:46 [Password]
+  - id=107475 data/02dfa7ec/conf/5fb5a784.env:55 [Password]
+  - id=107476 data/02dfa7ec/conf/5fb5a784.env:60 [Password]
+  - id=107477 data/02dfa7ec/conf/61ed9af5.example:33 [Password]
+  - id=107478 data/02dfa7ec/conf/61ed9af5.example:48 [Password]
+  - id=107479 data/02dfa7ec/conf/a758153b.example:31 [Password]
+  - id=107480 data/02dfa7ec/conf/a758153b.example:76 [Password]
+  - id=18155 data/0401c075/src/a1676f19.c:3150 [URL Credentials]
+  - id=36052 data/0401c075/conf/0795adfe.ini:4 [Password]
+
+Resumen guardado en : C:\IA\secret-scan-tfm\results\evaluation_summary.json
+FP para LLM guardados : C:\IA\secret-scan-tfm\fp_candidates.json (1128 entradas)
