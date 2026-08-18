@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>TFM Detección de secretos</title>
+<style>
+@page { size: A4; margin: 1.7cm 1.9cm 1.7cm 1.9cm; }
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-size: 11pt;
+  line-height: 1.38;
+  color: #1a1a1a;
+  text-align: justify;
+  hyphens: auto;
+}
+.cover {
+  page-break-after: always;
+  text-align: center;
+  padding-top: 2.4cm;
+}
+.cover h1 { font-size: 18pt; line-height: 1.25; margin: 1.4cm 1.2cm 0.6cm; text-align: center; }
+.cover h2, .cover h3 { font-size: 12pt; font-weight: normal; font-style: italic; margin: 0.35cm 1.4cm; text-align: center; }
+.cover p { text-align: center; margin: 0.25cm 0; }
+.cover .meta { margin-top: 1.6cm; font-size: 12pt; }
+.cover .kicker { font-size: 11pt; letter-spacing: 0.04em; margin-bottom: 0.2cm; }
+h1 { font-size: 13.5pt; margin: 0.7cm 0 0.25cm; text-align: left; }
+h2 { font-size: 12pt; margin: 0.5cm 0 0.18cm; text-align: left; }
+h3 { font-size: 11pt; margin: 0.4cm 0 0.12cm; text-align: left; }
+p { margin: 0 0 0.28cm 0; }
+blockquote {
+  margin: 0.3cm 0.6cm;
+  padding: 0.15cm 0.4cm;
+  border-left: 3px solid #455A64;
+  font-style: italic;
+  background: #f7f7f7;
+}
+ul, ol { margin: 0.15cm 0 0.3cm 0.6cm; padding: 0; }
+li { margin: 0.08cm 0; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9.4pt;
+  margin: 0.25cm 0 0.4cm;
+  text-align: left;
+}
+th, td {
+  border: 1px solid #90A4AE;
+  padding: 0.12cm 0.18cm;
+  vertical-align: top;
+}
+th { background: #ECEFF1; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 9.4pt; }
+a { color: #1a1a1a; text-decoration: none; }
+.figure { text-align: center; margin: 0.25cm 0 0.08cm; }
+.figure img { max-width: 100%; max-height: 6.8cm; height: auto; }
+.figure + p { font-size: 9.3pt; font-style: italic; text-align: center; margin: 0 0.4cm 0.4cm; }
+.caption {
+  font-size: 9.3pt;
+  font-style: italic;
+  text-align: center;
+  margin: 0 0.4cm 0.45cm;
+}
+.biblio p {
+  text-align: left;
+  font-size: 10pt;
+  line-height: 1.3;
+  margin: 0 0 0.22cm 0;
+  overflow-wrap: anywhere;
+}
+</style>
+</head>
+<body>
+<section class="cover">
+<p><strong>UNIVERSIDAD CATÓLICA DE MURCIA (UCAM)</strong></p>
+<p><strong>2ª Ed. Máster en IA Aplicada a la Ciberseguridad</strong></p>
+<p><em>Curso académico: 14/10/2025 – 31/08/2026</em></p>
+<h1>Detección de secretos en código y pipelines mediante reglas y LLM</h1>
+<h3>Combinación de expresiones regulares y entropía con un modelo de lenguaje para reducir falsos positivos, integración en pre-commit y CI/CD, medición de resultados y políticas de rotación y ocultación</h3>
+<p><strong>Trabajo Fin de Máster</strong></p>
+<p><strong>Autor/a:</strong> Ángela Ramírez Barajas</p>
+<p><strong>Director:</strong> Juanjo Salvador</p>
+<p>Murcia, julio 2026</p></section>
+<h2>Resumen</h2>
+<p>Las herramientas de detección de secretos basadas en reglas (expresiones regulares y entropía) son rápidas e integrables en Git, pero generan muchos falsos positivos: un token de test o un ejemplo en documentación dispara la misma alerta que una credencial de producción. Este trabajo propone un pipeline híbrido en el que Gitleaks detecta candidatos y un LLM local (Llama 3.1 8B, vía Ollama) reclasifica <em>solo</em> los falsos positivos, sin alterar los verdaderos positivos. Sobre CredData, Gitleaks obtiene 85,85 % de precisión y 45,86 % de recall. Con un prompt contextual, el LLM descarta correctamente el 99 % de una muestra de 200 falsos positivos (34 % con un prompt genérico), elevando la precisión híbrida proyectada al 99,97 % sin cambiar el recall. El escáner de reglas se integra en pre-commit y CI/CD; el LLM queda para triaje en lote. No se pretende superar en F1 global a sistemas con fine-tuning: el aporte es operativo, medible y sin reentrenamiento.</p>
+<p><strong>Palabras clave:</strong> detección de secretos, Gitleaks, LLM, falsos positivos, DevSecOps, CredData.</p>
+<h2>1. Introducción</h2>
+<p>El enunciado de este TFM pide combinar reglas (expresiones regulares y entropía) con un modelo de lenguaje para reducir falsos positivos al buscar claves y tokens en repositorios, integrar esa detección en pre-commit y CI/CD, medir resultados y proponer políticas de rotación y ocultación.</p>
+<p>Esa formulación responde a un problema concreto de adopción. Gitleaks, detect-secrets o TruffleHog identifican formatos conocidos (claves AWS, JWT, PEM, cadenas de alta entropía) en milisegundos y se enganchan a un hook de Git. El coste no es la latencia, sino el ruido: la misma regla que encuentra un secreto real dispara también sobre <code>MOCK_ACCESS_TOKEN</code> en un fixture, un PEM de ejemplo en un README o un placeholder en <code>.env.example</code>. En pre-commit, ese ruido se traduce en commits bloqueados sin motivo; en CI, en alertas que el equipo aprende a ignorar.</p>
+<p>Los trabajos recientes con LLM muestran que el contexto semántico —ruta, nombre de variable, entorno— discrimina mejor que el formato del valor (Rahman et al., 2025; Biringa y Kul, 2025). La mayoría, sin embargo, entrenan o ajustan un clasificador para maximizar el F1 global: el modelo decide, sobre cada candidato, si hay secreto. Ese no es el problema que aquí se aborda. Gitleaks ya detecta; lo que frena su uso es el volumen de falsos positivos. La pregunta de este trabajo es más estrecha:</p>
+<blockquote><p>¿Puede un LLM local, sin fine-tuning, recortar los falsos positivos de un escáner de reglas <em>sin tocar los verdaderos positivos</em>, y encajar esa separación en un flujo DevSecOps real?</p></blockquote>
+<p>La respuesta se articula en tres decisiones de diseño, que son el núcleo de la propuesta:</p>
+<ol><li><strong>El LLM no busca secretos.</strong> Recibe hallazgos que Gitleaks ya produjo. Las reglas cubren detección y recall; el modelo cubre triaje.</li><li><strong>Solo se evalúa (y se filtra) la rama de falsos positivos.</strong> Los verdaderos positivos no pasan por el modelo, de modo que un error del LLM no puede silenciar un secreto real. Por eso el recall del híbrido es exactamente el de Gitleaks, y por eso no se reporta un F1 «del LLM» como si fuera un detector.</li><li><strong>La comparación justa no es «LLM frente a heurísticas» en abstracto, sino «reglas solas frente a reglas más filtro»</strong>, y, frente a papers con LoRA, un posicionamiento honesto: no se reclama mejor F1 de laboratorio, sino precisión operativa sin entrenamiento ni API cloud.</li></ol>
+<p>Quedan fuera de alcance el fine-tuning, el procesamiento de los 1.128 falsos positivos de CredData (se usa una muestra de 200) y la verificación activa de credenciales contra APIs (estilo TruffleHog). El resto del documento sigue ese hilo: qué hay en la literatura, cómo funciona el pipeline, qué se midió y cómo se opera.</p>
+<h2>2. Contexto y trabajos relacionados</h2>
+<p>Los escáneres de reglas combinan patrones (regex para formatos conocidos) y umbrales de entropía (Meli et al., 2019). Gitleaks es representativo: rápido, offline e integrable en pre-commit y GitHub Actions, con el inconveniente de tratar cada coincidencia de forma aislada (Zanev, 2024). En el benchmark oficial de CredData (Samsung, abril 2022) obtuvo 52,6 % de precisión y 24,4 % de recall (Yun et al., 2021); cifras posteriores con versiones más recientes, como las de este trabajo, mejoran la precisión pero no resuelven el ruido. detect-secrets añade una <em>baseline</em> de falsos positivos conocidos, a costa de mantenimiento manual (Yelp, 2024). TruffleHog verifica si la credencial sigue viva; es más fiable cuando hay red, y éticamente delicado sobre secretos ajenos (Truffle Security, 2024). OWASP recomienda <em>shift-left</em> (hook local más CI) y gestores de secretos, no sustituir la detección por más reglas (OWASP, 2024a, 2024b).</p>
+<p>La evaluación rigurosa exige ground truth. CredData (Yun et al., 2021) etiqueta líneas de repositorios públicos como secreto real (T), falso positivo (F) o no aplicable (X). SecretBench es mayor y está en BigQuery (Basak et al., 2023); aquí se usa CredData por ser reproducible en local y porque incluye Gitleaks en su comparativa oficial.</p>
+<p>Sobre esa base hay tres líneas de aprendizaje automático. CredSweeper entrena un modelo clásico y obtiene el mejor F1 oficial en CredData (0,859), con el coste de mantener el modelo (Samsung, 2022). Biringa y Kul (2025) usan embeddings BERT/GPT-2 y un clasificador sobre CredData (F1 0,973). Rahman et al. (2025) extraen candidatos por regex y clasifican con LLM sobre SecretBench; con Llama 3.1 8B ajustado (LoRA) llegan a F1 0,985. Es el trabajo más cercano, y también el más fácil de malinterpretar: <strong>clasifican candidatos para maximizar F1; este TFM filtra falsos positivos de Gitleaks para maximizar precisión operativa sin bajar el recall de las reglas.</strong></p>
+<table><thead><tr><th>Aspecto</th><th>Reglas (Gitleaks)</th><th>Rahman et al. (2025)</th><th>Este trabajo</th></tr></thead><tbody><tr><td>Rol del modelo</td><td>No hay</td><td>Detector/clasificador</td><td>Filtro de FP</td></tr><tr><td>Entrenamiento</td><td>No</td><td>LoRA sobre SecretBench</td><td>Ninguno (prompt)</td></tr><tr><td>Métrica principal</td><td>Precisión / recall del escáner</td><td>F1 global</td><td>Tasa de FP descartados y precisión híbrida</td></tr><tr><td>Recall de las reglas</td><td>El del escáner</td><td>No aplica (otro pipeline)</td><td>Se conserva a propósito</td></tr><tr><td>Integración</td><td>Pre-commit / CI</td><td>Propuesta</td><td>Pre-commit y CI con reglas; LLM en lote</td></tr></tbody></table>
+<p>La brecha no es «usar un LLM para secretos», ya demostrado. Es cuantificar cuánto aporta un filtro contextual, sin fine-tuning, sobre un escáner que un equipo puede desplegar mañana.</p>
+<h2>3. Solución propuesta</h2>
+<h3>3.1 Cómo funciona el pipeline</h3>
+<p>El flujo tiene dos capas con responsabilidades distintas (Figura 1).</p>
+<p><strong>Capa 1 — detección (Gitleaks).</strong> Se escanea el corpus CredData (~1,02 GB, 11.393 archivos) con las reglas por defecto (regex + entropía). Cada hallazgo es un candidato: archivo, línea, regla y fragmento coincidente. Esta capa es la única que <em>encuentra</em> secretos. Lo que no dispara Gitleaks no llega nunca al LLM: de ahí que el recall no pueda subir.</p>
+<p><strong>Capa 2 — cruce con ground truth.</strong> Cada hallazgo se alinea con las etiquetas de CredData. Tres conjuntos:</p>
+<ul><li><strong>Verdadero positivo (TP):</strong> alerta y etiqueta T. En este experimento, 6.845. No se envían al LLM.</li><li><strong>Falso positivo (FP):</strong> alerta y etiqueta F o X. En este experimento, 1.128. Son la entrada del filtro.</li><li><strong>Sin etiqueta / no detectado:</strong> hallazgos fuera de <code>meta/</code> y secretos T que Gitleaks no vio (8.177 FN). El LLM no actúa sobre los FN.</li></ul>
+<p><strong>Capa 3 — filtro LLM (solo FP).</strong> Para cada candidato de la muestra se construye un mensaje con la ruta, la regla, el fragmento y un recorte del código alrededor. El modelo (<code>llama3.1:8b</code>, temperatura 0) responde si el hallazgo es un secreto real o un falso positivo. Si declara falso positivo, la alerta se descarta para el cálculo de precisión híbrida; si declara secreto real, se mantiene (el filtro ha fallado en ese caso).</p>
+<p><strong>Precisión híbrida.</strong> Se proyecta como TP / (TP + FP restantes), asumiendo que los TP no se tocan y que la tasa de acierto de la muestra se sostiene sobre el resto de FP. Es una cota optimista; se discute en el apartado 4.</p>
+<p class="figure"><img src="file:///C:/Users/germa/Downloads/secret-scan-tfm/secret-scan-tfm/docs/figures/fig01_pipeline_hibrido.png" alt="Pipeline híbrido: Gitleaks detecta; el cruce con etiquetas separa TP (intocados) y FP (únicos que ve el LLM)." style="width:95%"></p>
+<p><strong>Figura 1.</strong> Pipeline híbrido. Las reglas detectan; el LLM solo reclasifica falsos positivos.</p>
+<h3>3.2 Por qué solo se evalúan falsos positivos</h3>
+<p>No es una omisión experimental: es la hipótesis operativa.</p>
+<p>Si el LLM viera también los TP, un único «esto es un mock» sobre un secreto real bajaría el recall. El enunciado pide <em>reducir falsos positivos</em>, no sustituir el detector. Medir al modelo como clasificador binario de todas las líneas (como Rahman et al.) respondería a «¿el LLM detecta secretos?». Aquí la pregunta es «¿el filtro reduce ruido de un escáner ya usable?». Por eso las métricas del modelo son la tasa de FP correctamente descartados y la precisión híbrida, y por eso el recall se reporta —sin maquillaje— como el de Gitleaks: 45,86 %.</p>
+<p>Una consecuencia práctica: el LLM no es viable en cada <code>git commit</code> (~5–15 s por candidato). Gitleaks en pre-commit tarda menos de un segundo. El híbrido se despliega en dos tiempos: bloqueo rápido con reglas; triaje contextual en lote o en un runner con Ollama.</p>
+<h3>3.3 Dos prompts, el mismo modelo</h3>
+<p>Se comparan dos versiones sobre los mismos 200 FP, con el mismo modelo y temperatura 0, para aislar el efecto del prompt.</p>
+<ul><li><strong>v1 (genérico):</strong> «decide si es secreto real o falso positivo». El modelo se fía del formato: un PEM o un token con pinta de clave tiende a clasificarse como auténtico aunque viva en <code>tests/</code>.</li><li><strong>v2 (contextual):</strong> reglas explícitas. Rutas <code>/test/</code>, <code>/fixtures/</code>, <code>/docs/</code>, <code>/mock/</code>; nombres <code>MOCK</code>, <code>placeholder</code>, <code>example</code>; valores de desarrollo (<code>localhost</code>, secuencias tipo <code>at-0987654321</code>); y la instrucción de que un formato creíble <em>no basta</em> si el contexto es de prueba. El modelo debe marcar secreto real solo si parece credencial de runtime sin señales de test o documentación.</li></ul>
+<p>La hipótesis H1 era una reducción de FP de al menos el 30 % en la muestra. El resultado (apartado 4) la confirma con holgura, y muestra que la ganancia viene del prompt, no de cambiar de modelo.</p>
+<h3>3.4 Integración y políticas</h3>
+<p>En el flujo de desarrollo, Gitleaks se ejecuta antes de cada commit y de nuevo en cada push y pull request (GitHub Actions, historial Git completo). Los secretos de pipeline no van en el YAML: se referencian como secretos del proveedor (<code>secrets.API_TOKEN</code>). El LLM no corre en runners públicos de GitHub.</p>
+<p>Si hay un hallazgo confirmado: rotar en menos de 24 h si está en la rama principal; bloquear el merge si está en un PR; no ampliar la lista de excepciones sin justificación. Ocultación: variables de entorno, almacén (Vault / secretos de CI), nunca hardcodear. Un secreto en un workflow se trata igual que en código de aplicación.</p>
+<h2>4. Experimentos y resultados</h2>
+<p><strong>Dataset.</strong> CredData generado en local: 66.898 líneas etiquetadas, 15.104 secretos reales (T). Gitleaks 8.30.1; LLM Llama 3.1 8B en Ollama.</p>
+<p><strong>Baseline (solo Gitleaks).</strong> 8.210 hallazgos en 56,8 s. Sobre líneas etiquetadas: 6.845 TP, 1.128 FP, precisión 85,85 %, recall 45,86 %, F1 59,79 %. La herramienta es útil como primera red: la mayoría de alertas etiquetadas son secretos reales. El recall moderado se explica por formatos que las reglas por defecto no cubren (credenciales en URL, nonces, secretos propietarios). El híbrido no pretende cerrar esos FN. El problema que sí ataca son 1.128 FP: un volumen de triaje inviable en un hook diario.</p>
+<p><strong>Filtro LLM (N = 200 FP).</strong> Con v1, 68 descartes correctos (34 %) y precisión híbrida proyectada 98,11 %. Con v2, 198/200 (99 %) y 99,97 % proyectada. Sobre 199 candidatos comunes: 130 correcciones v1→v2, <strong>cero empeoramientos</strong>, 68 iguales correctos y 1 igual incorrecto. El único fallo persistente es un PEM de ejemplo embebido en documentación <em>inline</em> dentro de una ruta de aplicación (<code>model/app/</code>), sin segmentos <code>/test/</code>: el formato PEM gana a señales débiles (IDs <code>123123</code>, clave truncada). Es el límite del filtrado por ruta.</p>
+<p>La Figura 2 muestra el salto de precisión; la Figura 3, que el recall no se mueve: el híbrido sube en el eje de precisión y permanece en el mismo recall que Gitleaks. Esa es la evidencia de que el LLM no es un detector adicional, sino un filtro.</p>
+<p class="figure"><img src="file:///C:/Users/germa/Downloads/secret-scan-tfm/secret-scan-tfm/docs/figures/fig02_precision_comparativa.png" alt="Precisión de Gitleaks solo, híbrido con prompt genérico y híbrido con prompt contextual." style="width:72%"></p>
+<p><strong>Figura 2.</strong> Precisión: reglas solas frente a reglas + LLM (v1 genérico, v2 contextual). El valor de v2 es una proyección a partir de la muestra de 200 FP.</p>
+<p class="figure"><img src="file:///C:/Users/germa/Downloads/secret-scan-tfm/secret-scan-tfm/docs/figures/fig05_precision_recall.png" alt="Precisión frente a recall: el híbrido mejora precisión y deja el recall igual al de Gitleaks." style="width:58%"></p>
+<p><strong>Figura 3.</strong> Precisión frente a recall. El punto híbrido está sobre el mismo recall (45,86 %); solo cambia la precisión.</p>
+<p><strong>¿Mejora a otras propuestas LLM y a las heurísticas?</strong> Frente a Gitleaks, sí en la métrica que importa para adopción: menos ruido, mismos TP. Frente a Rahman et al. o Biringa y Kul, <strong>no se reclama un F1 superior</strong>. Ellos entrenan para clasificación global en otro (o el mismo) corpus; aquí no hay entrenamiento y la tarea es más estrecha. Lo que sí se muestra, y no aparece en esos papers, es que un prompt con reglas de contexto basta para pasar del 34 % al 99 % de acierto en FP de Gitleaks, con el mismo 8B, y que esa ganancia se puede operar: reglas en el commit, LLM fuera de la ruta crítica.</p>
+<p>La proyección 99,97 % asume que los 928 FP no muestreados se comportan como los 200 evaluados. Es una cota alta. Los FP de CredData se concentran en tests, mocks y documentación —justo lo que v2 codifica—, pero un muestreo estratificado o el corpus completo podría bajar el porcentaje. H1, en la muestra, queda confirmada (99 % frente al umbral del 30 %).</p>
+<h2>5. Limitaciones y conclusiones</h2>
+<p>La muestra es el 17,7 % de los FP; el LLM es un único modelo local; no hay verificación de si la credencial está viva; el recall de las reglas no mejora. El prompt v2 puede estar sobreajustado a patrones de CredData. Aun así, la comparativa v1/v2 con cero regresiones, el ground truth manual y un pipeline reproducible sostienen la conclusión principal.</p>
+<p>El detector usable en el día a día sigue siendo el de reglas. El LLM aporta discriminación semántica donde esas reglas son ciegas al contexto, siempre que no se le pida detectar lo que Gitleaks no vio y siempre que el prompt deje de ser un «¿parece un secreto?» genérico. Sin fine-tuning ni servicios cloud, el híbrido reduce de forma medible el ruido que impide adoptar el escáner, se integra en pre-commit y CI, y se acompaña de una política simple: rotar lo real, no negociar excepciones opacas, no escribir secretos en el YAML del pipeline.</p>
+<p>Trabajo futuro: evaluar los 1.128 FP o una muestra estratificada; reglas para documentación <em>inline</em> (el caso PEM); comparar con detect-secrets y con verificación activa; y, si hubiera GPU, un clasificador ligero al estilo de la literatura, midiendo no solo F1 sino latencia en CI.</p>
+<h2>Bibliografía</h2><div class="biblio">
+<p>Basak, S. K., Neil, L., Reaves, B., y Williams, L. (2023). SecretBench: A dataset of software secrets. En <em>Proceedings of the 20th International Conference on Mining Software Repositories (MSR)</em> (pp. 347-351). IEEE. https://doi.org/10.1109/MSR59073.2023.00053</p>
+<p>Biringa, C., y Kul, G. (2025). Detecting hard-coded credentials in software repositories via LLMs. <em>arXiv preprint</em> arXiv:2506.13090. https://arxiv.org/abs/2506.13090</p>
+<p>Meli, M., McNee, J., y Neville-Neil, G. (2019). Source code credentials hygiene: A case study. En <em>Proceedings of the 44th IEEE/IFIP International Conference on Dependable Systems and Networks Workshops (DSN-W)</em>. IEEE.</p>
+<p>OWASP Foundation. (2024a). CI/CD security cheat sheet. https://cheatsheetseries.owasp.org/cheatsheets/CI_CD_Security_Cheat_Sheet.html</p>
+<p>OWASP Foundation. (2024b). Secrets management cheat sheet. https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html</p>
+<p>Rahman, M. N., Ahmed, S. I., Wahab, Z., Sohan, S. M., y Shahriyar, R. (2025). Secret breach detection in source code with large language models. <em>arXiv preprint</em> arXiv:2504.18784. https://arxiv.org/abs/2504.18784</p>
+<p>Samsung. (2022). CredSweeper: ML-driven credential scanner. https://github.com/Samsung/CredSweeper</p>
+<p>Truffle Security. (2024). TruffleHog: Find and verify leaked credentials. https://github.com/trufflesecurity/trufflehog</p>
+<p>Yelp. (2024). detect-secrets: Tool for detecting secrets in the codebase. https://github.com/Yelp/detect-secrets</p>
+<p>Yun, J., Choi, S., Lee, Y., Sokol, O., Shim, W., Melkonyan, A., y Kuzmenko, D. (2021). CredData: A dataset of credentials for research. Samsung. https://github.com/Samsung/CredData</p>
+<p>Zanev, Z. (2024). Gitleaks. https://github.com/gitleaks/gitleaks</p></div>
+</body>
+</html>
